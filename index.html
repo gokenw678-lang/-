@@ -1,0 +1,887 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<meta name="theme-color" content="#b3a4f2">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="拼豆库存">
+<title>拼豆库存</title>
+<style>
+  :root{
+    --bg1:#fef2f8; --bg2:#f1eeff; --bg3:#eafaf3;
+    --card:#ffffff; --ink:#2b2a3d; --muted:#9b98ae;
+    --line:#efedf7;
+    --pri:#8b7be6; --pri-d:#6d5cd6; --pri-tint:#efeaff;
+    --ok:#2fa87a; --ok-bg:#e4f7ef;
+    --low:#d98a36; --low-bg:#fdefda;
+    --bad:#e06291; --bad-bg:#ffe4ee;
+    --pink:#e06291; --pink-bg:#ffe4ee;
+    --mint:#2fa87a; --mint-bg:#e4f7ef;
+    --lav:#7a6ad8; --lav-bg:#efeaff;
+    --peach:#df8a52; --peach-bg:#ffece0;
+    --shadow:0 6px 22px rgba(120,110,190,.10);
+    --shadow-sm:0 2px 10px rgba(120,110,190,.08);
+    --safe-b: env(safe-area-inset-bottom, 0px);
+    --safe-t: env(safe-area-inset-top, 0px);
+  }
+  *{box-sizing:border-box; -webkit-tap-highlight-color:transparent;}
+  html,body{margin:0;padding:0;}
+  body{
+    font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text","PingFang SC","Microsoft YaHei",sans-serif;
+    color:var(--ink); font-size:15px; line-height:1.45;
+    background:linear-gradient(165deg,var(--bg1) 0%, var(--bg2) 48%, var(--bg3) 100%) fixed;
+    overscroll-behavior-y:none; letter-spacing:.1px;
+  }
+  #app{max-width:680px; margin:0 auto; min-height:100vh; display:flex; flex-direction:column;}
+  header.appbar{
+    position:sticky; top:0; z-index:30; color:#fff;
+    padding:calc(var(--safe-t) + 14px) 18px 14px; display:flex; align-items:center; gap:10px;
+    background:linear-gradient(120deg,#b3a4f2 0%, #d7a6ee 55%, #f4abce 100%);
+    box-shadow:0 4px 18px rgba(180,150,220,.32);
+  }
+  header.appbar h1{font-size:18px; margin:0; font-weight:700; flex:1; text-shadow:0 1px 2px rgba(150,110,170,.25);}
+  header.appbar .icbtn{background:rgba(255,255,255,.24); border:none; color:#fff; width:38px; height:38px; border-radius:12px; font-size:18px; backdrop-filter:blur(6px);}
+  main{flex:1; padding:14px 14px 96px;}
+  .tab-view{display:none; animation:fade .25s ease;} .tab-view.active{display:block;}
+  @keyframes fade{from{opacity:0; transform:translateY(6px);} to{opacity:1; transform:none;}}
+
+  nav.tabbar{
+    position:fixed; left:0; right:0; bottom:0; z-index:30; display:flex;
+    background:rgba(255,255,255,.82); backdrop-filter:blur(20px) saturate(1.4);
+    border-top:1px solid rgba(230,226,245,.9);
+    padding-bottom:var(--safe-b); max-width:680px; margin:0 auto;
+    box-shadow:0 -4px 20px rgba(120,110,190,.07);
+  }
+  nav.tabbar button{flex:1; background:none; border:none; padding:9px 2px 11px; color:var(--muted); font-size:11px; display:flex; flex-direction:column; align-items:center; gap:3px; position:relative;}
+  nav.tabbar button .ic{font-size:21px; line-height:1;}
+  nav.tabbar button.active{color:var(--pri-d); font-weight:700;}
+  nav.tabbar button .badge{position:absolute; top:4px; left:50%; margin-left:6px; background:var(--bad); color:#fff; font-size:10px; min-width:16px; height:16px; border-radius:9px; padding:0 4px; display:none; align-items:center; justify-content:center; box-shadow:0 2px 6px rgba(224,98,145,.4);}
+  nav.tabbar button .badge.show{display:inline-flex;}
+
+  .card{background:var(--card); border-radius:20px; box-shadow:var(--shadow); padding:16px; margin-bottom:14px;}
+  .row{display:flex; align-items:center; gap:10px;}
+  .grow{flex:1;} .muted{color:var(--muted);} .sm{font-size:13px;} .xs{font-size:11px;}
+  .right{text-align:right;} .mono{font-variant-numeric:tabular-nums;}
+
+  button.btn{border:none; border-radius:14px; padding:11px 16px; font-size:14px; font-weight:650; color:#fff; background:linear-gradient(135deg,#9a8bf0,#8979e6); box-shadow:0 4px 12px rgba(137,121,230,.32); transition:transform .08s, filter .1s;}
+  button.btn.ghost{background:var(--pri-tint); color:var(--pri-d); box-shadow:none;}
+  button.btn.line{background:#fff; color:var(--ink); border:1px solid var(--line); box-shadow:var(--shadow-sm);}
+  button.btn.ok{background:linear-gradient(135deg,#54c79b,#2fa87a); box-shadow:0 4px 12px rgba(47,168,122,.3);}
+  button.btn.bad{background:linear-gradient(135deg,#f08bb0,#e06291); box-shadow:0 4px 12px rgba(224,98,145,.3);}
+  button.btn.bad.line{background:#fff; color:var(--bad); border:1px solid #f6d2e0; box-shadow:none;}
+  button.btn.warn{background:linear-gradient(135deg,#f1b25a,#df8a52);}
+  button.btn:active{transform:scale(.97); filter:brightness(.98);}
+  button.btn.sm{padding:8px 12px; font-size:13px; border-radius:11px;}
+  button.btn:disabled{opacity:.45; box-shadow:none;}
+
+  input,select,textarea{font-family:inherit; font-size:15px; color:var(--ink);}
+  input[type=text],input[type=number],input[type=search],select,textarea{
+    width:100%; padding:11px 14px; border:1.5px solid var(--line); border-radius:13px; background:#fbfaff; outline:none; transition:border-color .15s, box-shadow .15s;}
+  input:focus,textarea:focus,select:focus{border-color:var(--pri); box-shadow:0 0 0 4px rgba(139,123,230,.12);}
+  textarea{resize:vertical; min-height:120px;}
+  label.fld{display:block; margin-bottom:12px;}
+  label.fld span{display:block; font-size:12px; color:var(--muted); margin-bottom:5px; font-weight:600;}
+
+  .toolbar{display:flex; gap:9px; align-items:center; margin-bottom:14px; flex-wrap:wrap;}
+  .toolbar .grow{min-width:120px;}
+
+  .swatch{width:32px; height:32px; border-radius:10px; flex:none; box-shadow:inset 0 0 0 1px rgba(0,0,0,.06), 0 1px 3px rgba(0,0,0,.07);}
+  .swatch.lg{width:46px;height:46px;border-radius:13px;}
+
+  .inv-item{display:flex; align-items:center; gap:12px; padding:11px 4px; border-bottom:1px solid var(--line);}
+  .inv-item:last-child{border-bottom:none;}
+  .inv-item .codes{font-weight:700; font-size:14px;}
+  .inv-item .codes .more{color:var(--muted); font-weight:500; font-size:12px;}
+  .inv-item .nm{font-size:12px; color:var(--muted);}
+  .stock-pill{font-weight:800; font-variant-numeric:tabular-nums; padding:4px 11px; border-radius:20px; background:var(--ok-bg); color:var(--ok); font-size:14px;}
+  .stock-pill.low{background:var(--low-bg); color:var(--low);}
+  .stock-pill.zero{background:var(--bad-bg); color:var(--bad);}
+
+  .stepper{display:flex; align-items:center; gap:7px;}
+  .stepper button{width:36px; height:36px; border-radius:11px; border:none; background:var(--pri-tint); font-size:20px; font-weight:700; color:var(--pri-d); flex:none;}
+  .stepper button:active{transform:scale(.94);}
+  .stepper input{width:72px; text-align:center; padding:9px 4px; font-weight:700;}
+
+  .pat-grid{display:grid; grid-template-columns:repeat(2,1fr); gap:12px;}
+  .pat{background:var(--card); border-radius:18px; overflow:hidden; box-shadow:var(--shadow); position:relative;}
+  .pat .thumb{width:100%; aspect-ratio:1/1; object-fit:cover; background:#f1eefb; display:block;}
+  .pat .meta{padding:9px 11px;}
+  .pat .meta .t{font-size:13px; font-weight:700; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;}
+  .pat.done .thumb{opacity:.55;}
+  .pat .chk{position:absolute; top:9px; left:9px; width:30px; height:30px; border-radius:50%; background:rgba(255,255,255,.94); display:flex; align-items:center; justify-content:center; font-size:15px; box-shadow:0 2px 8px rgba(0,0,0,.18);}
+  .pat .donetag{position:absolute; top:9px; right:9px; background:linear-gradient(135deg,#54c79b,#2fa87a); color:#fff; font-size:10px; padding:3px 9px; border-radius:20px; font-weight:700;}
+
+  /* 待拼单列卡 */
+  .pcard{background:var(--card); border-radius:18px; box-shadow:var(--shadow); padding:11px; margin-bottom:12px; display:flex; align-items:center; gap:12px;}
+  .pcard .thumb{width:64px; height:64px; border-radius:14px; object-fit:cover; background:#f1eefb; flex:none;}
+  .pcard .pinfo{flex:1; min-width:0;}
+  .pcard .pinfo .t{font-weight:700; font-size:15px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;}
+  .pcard .pinfo .sub{font-size:12px; color:var(--muted); margin-top:2px;}
+  .pcard .rank{display:inline-block; min-width:20px; height:20px; line-height:20px; text-align:center; background:var(--lav-bg); color:var(--lav); border-radius:7px; font-size:11px; font-weight:800; padding:0 5px; margin-right:6px;}
+  .pcard .reorder{display:flex; flex-direction:column; gap:4px; flex:none;}
+  .pcard .reorder button{width:30px; height:26px; border-radius:8px; border:none; background:#f5f3fd; color:var(--pri-d); font-size:12px;}
+  .pcard .reorder button:disabled{opacity:.3;}
+  .pcard .done-btn{flex:none; width:44px; height:44px; border-radius:50%; border:none; background:var(--mint-bg); color:var(--mint); font-size:20px; box-shadow:inset 0 0 0 1.5px rgba(47,168,122,.25);}
+  .pcard .done-btn:active{transform:scale(.92);}
+
+  .seg{display:inline-flex; background:#efeaff; border-radius:13px; padding:4px;}
+  .seg button{border:none; background:none; padding:8px 15px; border-radius:10px; font-size:13px; font-weight:650; color:var(--muted);}
+  .seg button.active{background:#fff; color:var(--pri-d); box-shadow:0 2px 6px rgba(120,110,190,.18);}
+
+  /* 预测条 */
+  .proj{border-radius:20px; padding:15px 16px; margin-bottom:14px; box-shadow:var(--shadow);
+    background:linear-gradient(135deg,#f3f0ff 0%, #fdeef7 55%, #eafaf4 100%);
+    border:1px solid rgba(255,255,255,.7);}
+  .proj .ptitle{font-size:13px; font-weight:700; color:var(--lav); display:flex; align-items:center; gap:8px; flex-wrap:wrap;}
+  .proj .nstep{display:inline-flex; align-items:center; gap:4px; background:rgba(255,255,255,.7); border-radius:10px; padding:2px 4px;}
+  .proj .nstep button{width:24px; height:24px; border:none; background:#fff; border-radius:8px; color:var(--pri-d); font-weight:800; font-size:15px; box-shadow:var(--shadow-sm);}
+  .proj .nstep b{min-width:18px; text-align:center; font-size:14px; color:var(--ink);}
+  .chips{display:flex; gap:9px; margin-top:11px; flex-wrap:wrap;}
+  .chip{padding:7px 13px; border-radius:13px; font-size:13px; font-weight:750; display:inline-flex; align-items:center; gap:5px;}
+  .chip .n{font-size:16px; font-variant-numeric:tabular-nums;}
+  .chip.lav{background:rgba(255,255,255,.78); color:var(--lav);}
+  .chip.mint{background:var(--mint-bg); color:var(--mint);}
+  .chip.pink{background:var(--pink-bg); color:var(--pink);}
+  .proj .shorts{margin-top:12px; display:flex; flex-wrap:wrap; gap:7px;}
+  .scut{display:inline-flex; align-items:center; gap:6px; background:rgba(255,255,255,.85); border-radius:11px; padding:5px 9px; font-size:12px; font-weight:650; box-shadow:var(--shadow-sm);}
+  .scut .sw{width:14px; height:14px; border-radius:5px; box-shadow:inset 0 0 0 1px rgba(0,0,0,.06);}
+  .scut .lack{color:var(--pink); font-weight:800;}
+  .proj .pnote{margin-top:10px; font-size:12px; color:var(--peach); font-weight:600;}
+  .proj .pok{margin-top:11px; font-size:13px; color:var(--mint); font-weight:700;}
+
+  .modal-wrap{position:fixed; inset:0; z-index:50; display:none; align-items:flex-end; justify-content:center;}
+  .modal-wrap.show{display:flex;}
+  .modal-bg{position:absolute; inset:0; background:rgba(40,36,60,.4); backdrop-filter:blur(3px);}
+  .modal{position:relative; background:var(--card); width:100%; max-width:680px; border-radius:24px 24px 0 0; max-height:92vh; display:flex; flex-direction:column; animation:up .26s cubic-bezier(.2,.9,.3,1);}
+  @keyframes up{from{transform:translateY(50px); opacity:.5;} to{transform:translateY(0); opacity:1;}}
+  .modal .mhead{padding:16px 18px; border-bottom:1px solid var(--line); display:flex; align-items:center; gap:10px;}
+  .modal .mhead h3{margin:0; font-size:17px; flex:1; font-weight:700;}
+  .modal .mhead .x{background:#f3f1fb; border:none; width:34px; height:34px; border-radius:11px; font-size:19px; color:var(--muted);}
+  .modal .mbody{padding:16px 18px; overflow:auto;}
+  .modal .mfoot{padding:13px 18px calc(13px + var(--safe-b)); border-top:1px solid var(--line); display:flex; gap:10px;}
+  .modal .mfoot .btn{flex:1;}
+
+  .banner{background:linear-gradient(135deg,#fff7ec,#fdeef6); border:1px solid #f6e3c4; border-radius:16px; padding:14px 16px; margin-bottom:12px;}
+  .banner .bt{font-weight:800; color:var(--low); margin-bottom:5px;}
+  .empty{text-align:center; color:var(--muted); padding:48px 16px;}
+  .empty .ic{font-size:44px; opacity:.5; display:block; margin-bottom:8px;}
+  .toast{position:fixed; left:50%; bottom:100px; transform:translateX(-50%); background:rgba(43,42,61,.94); color:#fff; padding:11px 18px; border-radius:24px; font-size:13px; z-index:80; opacity:0; transition:opacity .2s, transform .2s; pointer-events:none; max-width:90%; box-shadow:0 8px 24px rgba(0,0,0,.2);}
+  .toast.show{opacity:1; transform:translateX(-50%) translateY(-4px);}
+  .tag{display:inline-flex; align-items:center; gap:5px; background:var(--pri-tint); color:var(--pri-d); border-radius:10px; padding:5px 10px; font-size:12px; font-weight:650; margin:0 5px 5px 0;}
+  hr.sep{border:none; border-top:1px solid var(--line); margin:15px 0;}
+  .hint{font-size:12px; color:var(--muted); background:#f8f7fd; border-radius:13px; padding:11px 13px; line-height:1.5;}
+</style>
+</head>
+<body>
+<div id="app">
+  <header class="appbar">
+    <h1 id="appTitle">🍬 拼豆库存</h1>
+    <button class="icbtn" id="btnBackup" title="备份">💾</button>
+    <button class="icbtn" id="btnSettings" title="设置">⚙</button>
+  </header>
+
+  <main>
+    <!-- ============ 库存 ============ -->
+    <section class="tab-view active" id="view-inv">
+      <div class="toolbar">
+        <select id="viewSel" style="flex:1.2;"></select>
+        <input type="search" id="invSearch" class="grow" placeholder="搜索色号 / 名字">
+      </div>
+      <div class="row sm muted" style="margin:-4px 4px 8px;">
+        <span class="grow" id="invCount"></span>
+        <button class="btn ghost sm" id="btnAddColor">＋ 颜色</button>
+      </div>
+      <div class="card" id="invList"></div>
+    </section>
+
+    <!-- ============ 图纸 ============ -->
+    <section class="tab-view" id="view-pat">
+      <div class="toolbar">
+        <div class="seg" id="patSeg">
+          <button data-f="todo" class="active">待拼</button>
+          <button data-f="done">已拼</button>
+        </div>
+        <span class="grow"></span>
+        <button class="btn" id="btnAddPattern">＋ 上传图纸</button>
+      </div>
+      <input type="file" id="patFile" accept="image/*" capture="environment" style="display:none">
+      <div id="patProjection"></div>
+      <div id="patList"></div>
+    </section>
+
+    <!-- ============ 录用量（手动/补货） ============ -->
+    <section class="tab-view" id="view-use">
+      <div class="card">
+        <div class="row" style="margin-bottom:12px;">
+          <div class="seg" id="useMode">
+            <button data-m="out" class="active">扣减库存</button>
+            <button data-m="in">补货入库</button>
+          </div>
+          <span class="grow"></span>
+        </div>
+        <div class="hint" id="useModeHint" style="margin-bottom:12px;">不绑定图纸的临时增减。图纸消耗请在「图纸」里记录。</div>
+        <input type="search" id="useSearch" placeholder="搜索颜色加入清单（色号/名字）">
+        <div id="useSuggest" style="margin-top:8px;"></div>
+      </div>
+      <div class="card">
+        <div class="row" style="margin-bottom:8px;">
+          <b class="grow">本次清单</b>
+          <button class="btn line sm" id="btnClearUse">清空</button>
+        </div>
+        <div id="useList"></div>
+      </div>
+      <button class="btn" id="btnApplyUse" style="width:100%; padding:15px;">确认</button>
+    </section>
+
+    <!-- ============ 补豆 ============ -->
+    <section class="tab-view" id="view-low">
+      <div class="row" style="margin:2px 4px 12px;">
+        <b class="grow">补豆清单（库存低于 <span id="thLabel">500</span>）</b>
+        <button class="btn sm" id="btnBulkRestock">⚡ 一键补货</button>
+      </div>
+      <div id="lowList"></div>
+    </section>
+  </main>
+
+  <nav class="tabbar">
+    <button data-tab="inv" class="active"><span class="ic">🎨</span>库存</button>
+    <button data-tab="pat"><span class="ic">🖼️</span>图纸</button>
+    <button data-tab="use"><span class="ic">✏️</span>录用量</button>
+    <button data-tab="low"><span class="ic">🔔</span><span class="badge" id="lowBadge"></span>补豆</button>
+  </nav>
+</div>
+
+<div class="modal-wrap" id="modalWrap">
+  <div class="modal-bg" id="modalBg"></div>
+  <div class="modal">
+    <div class="mhead"><h3 id="modalTitle"></h3><button class="x" id="modalX">×</button></div>
+    <div class="mbody" id="modalBody"></div>
+    <div class="mfoot" id="modalFoot"></div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+"use strict";
+/* ============================================================
+   拼豆库存 — 单文件本地应用（糖果风）
+   ============================================================ */
+const $ = (s,r=document)=>r.querySelector(s);
+const $$ = (s,r=document)=>[...r.querySelectorAll(s)];
+const uid = ()=> Date.now().toString(36)+Math.random().toString(36).slice(2,7);
+const todayStr = ()=> new Date().toISOString().slice(0,10);
+const fmt = n=> Number(n||0).toLocaleString('zh-CN');
+function toast(msg){ const t=$('#toast'); t.textContent=msg; t.classList.add('show'); clearTimeout(t._t); t._t=setTimeout(()=>t.classList.remove('show'),2000); }
+function naturalCompare(a,b){ return String(a).localeCompare(String(b), undefined, {numeric:true, sensitivity:'base'}); }
+function hslToHex(h,s,l){ s/=100; l/=100; const a=s*Math.min(l,1-l); const f=n=>{const k=(n+h/30)%12; const c=l-a*Math.max(-1,Math.min(k-3,Math.min(9-k,1))); return Math.round(255*c).toString(16).padStart(2,'0');}; return '#'+f(0)+f(8)+f(4); }
+
+/* ---------- IndexedDB 图片 ---------- */
+const IDB = (()=>{
+  let dbp=null;
+  function open(){ if(dbp)return dbp; dbp=new Promise((res,rej)=>{ const r=indexedDB.open('perler_imgs',1); r.onupgradeneeded=()=>r.result.createObjectStore('imgs'); r.onsuccess=()=>res(r.result); r.onerror=()=>rej(r.error); }); return dbp; }
+  async function put(k,b){ const db=await open(); return new Promise((res,rej)=>{const tx=db.transaction('imgs','readwrite'); tx.objectStore('imgs').put(b,k); tx.oncomplete=res; tx.onerror=()=>rej(tx.error);}); }
+  async function get(k){ const db=await open(); return new Promise((res,rej)=>{const tx=db.transaction('imgs','readonly'); const rq=tx.objectStore('imgs').get(k); rq.onsuccess=()=>res(rq.result); rq.onerror=()=>rej(rq.error);}); }
+  async function del(k){ const db=await open(); return new Promise((res,rej)=>{const tx=db.transaction('imgs','readwrite'); tx.objectStore('imgs').delete(k); tx.oncomplete=res; tx.onerror=()=>rej(tx.error);}); }
+  async function keys(){ const db=await open(); return new Promise((res,rej)=>{const tx=db.transaction('imgs','readonly'); const rq=tx.objectStore('imgs').getAllKeys(); rq.onsuccess=()=>res(rq.result); rq.onerror=()=>rej(rq.error);}); }
+  return {put,get,del,keys};
+})();
+
+/* ---------- 状态 ---------- */
+const KEY='perler_state_v1';
+let state=null;
+function seedColors(){
+  const out=[]; let n=0;
+  const add=(hex,name)=>{ n++; out.push({id:uid(),hex,name:name||'',stock:0,codes:{'默认':String(n).padStart(3,'0')},snooze:false}); };
+  for(let i=0;i<24;i++){ const l=Math.round(i/23*100); add(hslToHex(0,0,l), i===0?'黑':(i===23?'白':'灰'+l)); }
+  for(let hi=0; hi<20; hi++){ const h=Math.round(hi*18); for(let j=0;j<10;j++){ const l=Math.round(88-j*(88-26)/9); const s=Math.round(72+(j<5?j*4:(9-j)*4)); add(hslToHex(h,Math.min(96,s),l),''); } }
+  return out;
+}
+function defaultState(){ return { version:2, systems:['默认'], activeView:'__main__', colors:seedColors(), patterns:[], settings:{threshold:500,lastRemindDate:''} }; }
+function load(){ try{ const raw=localStorage.getItem(KEY); if(raw){ state=JSON.parse(raw); migrate(); return; } }catch(e){} state=defaultState(); save(); }
+function migrate(){
+  state.systems=state.systems||['默认'];
+  state.settings=state.settings||{threshold:500,lastRemindDate:''};
+  if(state.settings.threshold==null)state.settings.threshold=500;
+  state.colors=state.colors||[]; state.patterns=state.patterns||[];
+  state.colors.forEach(c=>{ c.codes=c.codes||{}; c.stock=Number(c.stock)||0; if(c.snooze==null)c.snooze=false; });
+  state.patterns.forEach((p,i)=>{ p.usage=p.usage||{}; p.actualUsage=p.actualUsage||{}; if(p.order==null)p.order=-(p.createdAt||(Date.now()-i)); });
+}
+function save(){ localStorage.setItem(KEY, JSON.stringify(state)); }
+
+/* ---------- 颜色辅助 ---------- */
+function colorById(id){ return state.colors.find(c=>c.id===id); }
+function codesText(c){ return [...new Set(state.systems.map(s=>c.codes[s]).filter(Boolean))]; }
+function displayCode(c){ if(state.activeView==='__main__'){ return codesText(c)[0]||'—'; } return c.codes[state.activeView]||'—'; }
+function stockClass(n){ const th=state.settings.threshold; if(n<=0)return 'zero'; if(n<th)return 'low'; return ''; }
+function lowColors(){ const th=state.settings.threshold; return state.colors.filter(c=>c.stock<th); }
+function lowToRemind(){ return lowColors().filter(c=>!c.snooze); }
+
+/* ============================================================
+   通用：颜色数量编辑器
+   ============================================================ */
+function qtyEditor(draft, opts){
+  opts=opts||{}; const step=opts.step||10;
+  const wrap=document.createElement('div');
+  const search=document.createElement('input'); search.type='search'; search.placeholder='搜索颜色加入（色号/名字）';
+  const sug=document.createElement('div'); sug.style.margin='8px 0';
+  const list=document.createElement('div');
+  wrap.append(search,sug,list);
+  function renderList(){
+    list.innerHTML='';
+    const ids=Object.keys(draft);
+    if(!ids.length){ list.innerHTML='<div class="muted sm" style="padding:6px 2px;">用上方搜索框把颜色加进来，再填数量。</div>'; opts.onChange&&opts.onChange(); return; }
+    ids.forEach(id=>{
+      const c=colorById(id); if(!c){ delete draft[id]; return; }
+      const d=document.createElement('div'); d.className='inv-item';
+      d.innerHTML=`<div class="swatch" style="background:${c.hex}"></div>
+        <div class="grow" style="min-width:0;"><div class="codes">${displayCode(c)} ${opts.showStock?`<span class="more">库存 ${fmt(c.stock)}</span>`:''}</div><div class="nm">${c.name||''}</div></div>`;
+      const st=document.createElement('div'); st.className='stepper';
+      st.innerHTML=`<button>−</button><input type="text" inputmode="numeric" min="0" value="${draft[id]}"><button>＋</button>`;
+      const inp=st.querySelector('input');
+      st.children[0].onclick=()=>{ inp.value=Math.max(0,(+inp.value||0)-step); draft[id]=+inp.value; opts.onChange&&opts.onChange(); };
+      st.children[2].onclick=()=>{ inp.value=(+inp.value||0)+step; draft[id]=+inp.value; opts.onChange&&opts.onChange(); };
+      inp.oninput=()=>{ draft[id]=Math.max(0,+inp.value||0); opts.onChange&&opts.onChange(); };
+      const rm=document.createElement('button'); rm.className='btn line sm'; rm.style.flex='none'; rm.textContent='✕';
+      rm.onclick=()=>{ delete draft[id]; renderList(); };
+      d.appendChild(st); d.appendChild(rm); list.appendChild(d);
+    });
+    opts.onChange&&opts.onChange();
+  }
+  search.oninput=()=>{
+    const q=search.value.trim().toLowerCase(); sug.innerHTML=''; if(!q)return;
+    state.colors.filter(c=>(c.name||'').toLowerCase().includes(q)||Object.values(c.codes).some(v=>String(v).toLowerCase().includes(q))).slice(0,12).forEach(c=>{
+      const b=document.createElement('button'); b.className='tag'; b.style.fontSize='13px';
+      b.innerHTML=`<span class="swatch" style="width:14px;height:14px;border-radius:5px;background:${c.hex}"></span>${displayCode(c)} ${c.name||''}`;
+      b.onclick=()=>{ if(!(c.id in draft))draft[c.id]=0; search.value=''; sug.innerHTML=''; renderList(); };
+      sug.appendChild(b);
+    });
+  };
+  renderList();
+  return {el:wrap, refresh:renderList};
+}
+function cleanDraft(d){ const o={}; Object.keys(d).forEach(k=>{ if(d[k]>0)o[k]=d[k]; }); return o; }
+
+/* ============================================================
+   库存
+   ============================================================ */
+function renderViewSelector(){
+  const sel=$('#viewSel'); sel.innerHTML='';
+  const o0=document.createElement('option'); o0.value='__main__'; o0.textContent='主视图（全部色号）'; sel.appendChild(o0);
+  state.systems.forEach(s=>{ const o=document.createElement('option'); o.value=s; o.textContent='视图：'+s; sel.appendChild(o); });
+  sel.value=state.activeView;
+}
+function renderInventory(){
+  renderViewSelector();
+  const q=$('#invSearch').value.trim().toLowerCase();
+  let list=state.colors.slice().sort((a,b)=>naturalCompare(displayCode(a),displayCode(b)));
+  if(q) list=list.filter(c=>(c.name||'').toLowerCase().includes(q)||Object.values(c.codes).some(v=>String(v).toLowerCase().includes(q)));
+  $('#invCount').textContent=`共 ${state.colors.length} 色`+(q?`，匹配 ${list.length}`:'');
+  const box=$('#invList'); box.innerHTML='';
+  if(!list.length){ box.innerHTML='<div class="empty"><span class="ic">🔍</span>没有匹配的颜色</div>'; return; }
+  const main=state.activeView==='__main__';
+  list.forEach(c=>{
+    const div=document.createElement('div'); div.className='inv-item';
+    const all=codesText(c); let codesHtml;
+    if(main){ const rest=all.slice(1); codesHtml=`<span>${all[0]||'—'}</span>`+(rest.length?` <span class="more">/ ${rest.join(' / ')}</span>`:''); }
+    else codesHtml=`<span>${displayCode(c)}</span>`;
+    div.innerHTML=`<div class="swatch" style="background:${c.hex}"></div>
+      <div class="grow" style="min-width:0;"><div class="codes">${codesHtml}</div><div class="nm">${c.name?c.name:'<span style="opacity:.5">未命名</span>'}</div></div>
+      <div class="stock-pill ${stockClass(c.stock)}">${fmt(c.stock)}</div>`;
+    div.onclick=()=>editColor(c.id);
+    box.appendChild(div);
+  });
+}
+
+/* ============================================================
+   图纸
+   ============================================================ */
+let patFilter='todo';
+let projN=5;
+function todoSorted(){ return state.patterns.filter(p=>p.status!=='done').sort((a,b)=>(a.order??0)-(b.order??0)); }
+function patBeads(usage){ return Object.values(usage||{}).reduce((s,x)=>s+(+x||0),0); }
+
+function computeProjection(n){
+  const list=todoSorted().slice(0,n);
+  const need={};
+  list.forEach(p=>{ Object.entries(p.usage||{}).forEach(([cid,q])=>{ need[cid]=(need[cid]||0)+(+q||0); }); });
+  const rows=Object.entries(need).map(([cid,q])=>{ const c=colorById(cid); return c?{c,need:q,remain:c.stock-q}:null; }).filter(Boolean);
+  const short=rows.filter(r=>r.remain<0).sort((a,b)=>a.remain-b.remain);
+  const lowAfter=rows.filter(r=>r.remain>=0 && r.remain<state.settings.threshold);
+  return { used:list.length, totalNeed:rows.reduce((s,r)=>s+r.need,0), short, lowAfter };
+}
+function renderProjection(){
+  const box=$('#patProjection'); box.innerHTML='';
+  if(patFilter!=='todo') return;
+  const todoCount=todoSorted().length;
+  if(!todoCount) return;
+  projN=Math.max(1, Math.min(projN, todoCount));
+  const n=projN;
+  const pr=computeProjection(n);
+  const proj=document.createElement('div'); proj.className='proj';
+  let shortsHtml='';
+  if(pr.short.length){
+    shortsHtml='<div class="shorts">'+pr.short.slice(0,10).map(r=>
+      `<span class="scut"><span class="sw" style="background:${r.c.hex}"></span>${displayCode(r.c)} <span class="lack">缺 ${fmt(-r.remain)}</span></span>`
+    ).join('')+(pr.short.length>10?`<span class="scut">+${pr.short.length-10}</span>`:'')+'</div>';
+  }
+  proj.innerHTML=`
+    <div class="ptitle">📊 拼完前
+      <span class="nstep"><button id="nMinus">−</button><b id="nVal">${n}</b><button id="nPlus">＋</button></span>
+      个待拼后，库存预测</div>
+    <div class="chips">
+      <span class="chip lav">需 <span class="n">${fmt(pr.totalNeed)}</span> 颗</span>
+      <span class="chip ${pr.short.length?'pink':'mint'}">${pr.short.length?`<span class="n">${pr.short.length}</span> 种不够`:'都够拼 ✓'}</span>
+    </div>
+    ${shortsHtml}
+    ${(!pr.short.length && pr.totalNeed>0)?'<div class="pok">✓ 这些图纸的库存都够，放心拼～</div>':''}
+    ${pr.lowAfter.length?`<div class="pnote">⚠️ 拼完后有 ${pr.lowAfter.length} 种会低于补货线</div>`:''}
+    ${pr.totalNeed===0?'<div class="muted sm" style="margin-top:10px;">前面这些图纸还没填预计消耗，点开图纸录入后即可预测。</div>':''}`;
+  box.appendChild(proj);
+  proj.querySelector('#nMinus').onclick=()=>{ if(projN>1){projN--; renderProjection();} };
+  proj.querySelector('#nPlus').onclick=()=>{ if(projN<todoCount){projN++; renderProjection();} };
+}
+
+function renderPatterns(){
+  renderProjection();
+  const box=$('#patList'); box.innerHTML='';
+  if(patFilter==='todo'){
+    const list=todoSorted();
+    if(!list.length){ box.innerHTML='<div class="empty"><span class="ic">🖼️</span>还没有待拼图纸，点右上角上传</div>'; return; }
+    list.forEach((p,idx)=>{
+      const el=document.createElement('div'); el.className='pcard';
+      const est=patBeads(p.usage); const nc=Object.keys(cleanDraft(p.usage)).length;
+      el.innerHTML=`
+        <img class="thumb" alt="">
+        <div class="pinfo"><div class="t"><span class="rank">#${idx+1}</span>${p.title||'未命名图纸'}</div>
+          <div class="sub">${nc?`预计 ${nc} 色 · 约 ${fmt(est)} 颗`:'未填预计消耗'}</div></div>
+        <div class="reorder"><button class="up">▲</button><button class="down">▼</button></div>
+        <button class="done-btn" title="拼完">✓</button>`;
+      box.appendChild(el);
+      if(p.imageId) IDB.get(p.imageId).then(b=>{ if(b)el.querySelector('.thumb').src=URL.createObjectURL(b); });
+      const up=el.querySelector('.up'), dn=el.querySelector('.down');
+      up.disabled=idx===0; dn.disabled=idx===list.length-1;
+      up.onclick=(e)=>{ e.stopPropagation(); moveTodo(p.id,-1); };
+      dn.onclick=(e)=>{ e.stopPropagation(); moveTodo(p.id,1); };
+      el.querySelector('.done-btn').onclick=(e)=>{ e.stopPropagation(); confirmComplete(p.id); };
+      el.querySelector('.thumb').onclick=()=>openPattern(p.id);
+      el.querySelector('.pinfo').onclick=()=>openPattern(p.id);
+    });
+  }else{
+    const list=state.patterns.filter(p=>p.status==='done').sort((a,b)=>b.createdAt-a.createdAt);
+    if(!list.length){ box.innerHTML='<div class="empty"><span class="ic">✅</span>还没有已拼图纸</div>'; return; }
+    const grid=document.createElement('div'); grid.className='pat-grid'; box.appendChild(grid);
+    list.forEach(p=>{
+      const el=document.createElement('div'); el.className='pat done';
+      const act=patBeads(p.actualUsage); const nc=Object.keys(cleanDraft(p.actualUsage)).length;
+      el.innerHTML=`<div class="chk">↩︎</div><div class="donetag">已拼</div><img class="thumb" alt="">
+        <div class="meta"><div class="t">${p.title||'未命名图纸'}</div><div class="xs muted">${nc?`实际 ${fmt(act)} 颗`:'无用量记录'}</div></div>`;
+      grid.appendChild(el);
+      if(p.imageId) IDB.get(p.imageId).then(b=>{ if(b)el.querySelector('.thumb').src=URL.createObjectURL(b); });
+      el.querySelector('.chk').onclick=(e)=>{ e.stopPropagation(); revertPattern(p.id); };
+      el.querySelector('.meta').onclick=()=>openPattern(p.id);
+      el.querySelector('.thumb').onclick=()=>openPattern(p.id);
+    });
+  }
+}
+function moveTodo(id,dir){
+  const list=todoSorted(); const i=list.findIndex(p=>p.id===id); const j=i+dir;
+  if(j<0||j>=list.length)return;
+  const a=list[i],b=list[j]; const t=a.order; a.order=b.order; b.order=t; save(); renderPatterns();
+}
+function revertPattern(id){
+  const p=state.patterns.find(x=>x.id===id); if(!p)return;
+  if(!confirm('退回到待拼？之前扣的库存会加回来。')) return;
+  Object.entries(p.actualUsage||{}).forEach(([cid,q])=>{ const c=colorById(cid); if(c){ c.stock+=(+q||0); if(c.stock>=state.settings.threshold)c.snooze=false; } });
+  p.actualUsage={}; p.status='todo'; p.order=(state.patterns.length?Math.min(...state.patterns.map(x=>x.order??0)):0)-1;
+  save(); renderPatterns(); renderInventory(); renderLow(); updateBadge();
+  toast('已退回待拼，库存已恢复');
+}
+
+/* ---------- 标记已拼：核对实际消耗 ---------- */
+function confirmComplete(id){
+  const p=state.patterns.find(x=>x.id===id); if(!p)return;
+  const draft=Object.assign({}, p.usage||{});
+  const body=document.createElement('div');
+  body.innerHTML=`<div class="hint" style="margin-bottom:12px;">默认带入<b>预计消耗</b>。拼的过程中若有损耗/多用，请在这里改成<b>实际消耗</b>，确认后从库存扣减。</div>`;
+  const ed=qtyEditor(draft,{step:10,showStock:true});
+  body.appendChild(ed.el);
+  const foot=[ mkBtn('取消','line',closeModal),
+    mkBtn('确认并扣库存','ok',()=>{
+      const clean=cleanDraft(draft);
+      let warn=[];
+      Object.entries(clean).forEach(([cid,q])=>{ const c=colorById(cid); if(!c)return; if(c.stock<q)warn.push(displayCode(c)); c.stock=Math.max(0,c.stock-q); });
+      p.actualUsage=clean; p.usage=Object.assign({},p.usage,clean); p.status='done';
+      save(); closeModal(); renderPatterns(); renderInventory(); renderLow(); updateBadge();
+      toast(warn.length?('已扣减，库存不足已清零：'+warn.join('、')):'🎉 已完成并扣减库存');
+    }) ];
+  openModal('核对实际消耗', body, foot);
+}
+
+/* ---------- 图纸详情 ---------- */
+function openPattern(id){
+  const p=state.patterns.find(x=>x.id===id); if(!p)return;
+  const done=p.status==='done';
+  const body=document.createElement('div');
+  body.innerHTML=`
+    <label class="fld"><span>标题</span><input type="text" id="ptTitle" value="${(p.title||'').replace(/"/g,'&quot;')}" placeholder="给图纸起个名"></label>
+    <div style="text-align:center;margin-bottom:12px;"><img id="ptImg" style="max-width:100%;max-height:44vh;border-radius:14px;box-shadow:var(--shadow);" alt=""></div>
+    <hr class="sep">
+    <div class="row" style="margin-bottom:10px;"><b class="grow">${done?'实际消耗':'预计消耗'}</b>
+      <span class="tag ${done?'':''}" id="ptTotal"></span></div>`;
+  if(p.imageId) IDB.get(p.imageId).then(b=>{ if(b)body.querySelector('#ptImg').src=URL.createObjectURL(b); });
+  const draft=Object.assign({}, done?p.actualUsage:p.usage);
+  const totalTag=body.querySelector('#ptTotal');
+  const ed=qtyEditor(draft,{step:10,showStock:done,onChange:()=>{ totalTag.textContent='共 '+fmt(patBeads(draft))+' 颗'; }});
+  body.appendChild(ed.el);
+  totalTag.textContent='共 '+fmt(patBeads(draft))+' 颗';
+
+  const foot=[];
+  foot.push(mkBtn('删除','bad line',()=>{ if(confirm('删除这张图纸？')){ if(p.imageId)IDB.del(p.imageId); state.patterns=state.patterns.filter(x=>x.id!==id); save(); closeModal(); renderPatterns(); toast('已删除'); } }));
+  if(done){
+    const old=Object.assign({}, p.actualUsage);
+    foot.push(mkBtn('保存调整','ok',()=>{
+      p.title=body.querySelector('#ptTitle').value.trim();
+      const clean=cleanDraft(draft);
+      // 按差值调整库存
+      const cids=new Set([...Object.keys(old),...Object.keys(clean)]);
+      cids.forEach(cid=>{ const c=colorById(cid); if(!c)return; const delta=(clean[cid]||0)-(old[cid]||0); c.stock=Math.max(0,c.stock-delta); if(c.stock>=state.settings.threshold)c.snooze=false; });
+      p.actualUsage=clean; save(); closeModal(); renderPatterns(); renderInventory(); renderLow(); updateBadge(); toast('已更新实际消耗并调整库存');
+    }));
+  }else{
+    foot.push(mkBtn('保存预计','ghost',()=>{ p.title=body.querySelector('#ptTitle').value.trim(); p.usage=cleanDraft(draft); save(); closeModal(); renderPatterns(); toast('已保存预计消耗'); }));
+    foot.push(mkBtn('标记已拼','ok',()=>{ p.title=body.querySelector('#ptTitle').value.trim(); p.usage=cleanDraft(draft); save(); closeModal(); confirmComplete(id); }));
+  }
+  openModal(done?'已拼图纸':'待拼图纸', body, foot);
+}
+
+/* ---------- 上传图纸 ---------- */
+async function handlePatternFile(file){
+  if(!file)return; toast('处理图片中…');
+  const dataUrl=await downscaleImage(file,1600,.85);
+  const blob=await (await fetch(dataUrl)).blob();
+  const imgId=uid(); await IDB.put(imgId,blob);
+  const minOrder=state.patterns.length?Math.min(...state.patterns.map(x=>x.order??0)):0;
+  const p={id:uid(),title:'',status:'todo',imageId:imgId,createdAt:Date.now(),order:minOrder-1,usage:{},actualUsage:{}};
+  state.patterns.push(p); save();
+  patFilter='todo'; $$('#patSeg button').forEach(b=>b.classList.toggle('active',b.dataset.f==='todo'));
+  renderPatterns(); openPattern(p.id);
+}
+function downscaleImage(file,maxDim,q){ return new Promise((res,rej)=>{ const img=new Image(); const url=URL.createObjectURL(file); img.onload=()=>{ let {width:w,height:h}=img; if(Math.max(w,h)>maxDim){ const r=maxDim/Math.max(w,h); w=Math.round(w*r); h=Math.round(h*r);} const cv=document.createElement('canvas'); cv.width=w; cv.height=h; cv.getContext('2d').drawImage(img,0,0,w,h); URL.revokeObjectURL(url); res(cv.toDataURL('image/jpeg',q)); }; img.onerror=rej; img.src=url; }); }
+
+/* ============================================================
+   录用量（临时手动）
+   ============================================================ */
+let useMode='out'; let useDraft={};
+function renderUseSuggest(){
+  const q=$('#useSearch').value.trim().toLowerCase(); const box=$('#useSuggest'); box.innerHTML=''; if(!q)return;
+  state.colors.filter(c=>(c.name||'').toLowerCase().includes(q)||Object.values(c.codes).some(v=>String(v).toLowerCase().includes(q))).slice(0,12).forEach(c=>{
+    const b=document.createElement('button'); b.className='tag'; b.style.fontSize='13px';
+    b.innerHTML=`<span class="swatch" style="width:14px;height:14px;border-radius:5px;background:${c.hex}"></span>${displayCode(c)} ${c.name||''}`;
+    b.onclick=()=>{ if(!(c.id in useDraft))useDraft[c.id]=0; $('#useSearch').value=''; box.innerHTML=''; renderUseList(); };
+    box.appendChild(b);
+  });
+}
+function renderUseList(){
+  const box=$('#useList'); box.innerHTML='';
+  const ids=Object.keys(useDraft);
+  if(!ids.length){ box.innerHTML='<div class="muted sm" style="padding:8px 2px;">用上面搜索框添加颜色，再填数量。</div>'; updateUseBtn(); return; }
+  ids.forEach(id=>{
+    const c=colorById(id); if(!c){delete useDraft[id];return;}
+    const div=document.createElement('div'); div.className='inv-item';
+    div.innerHTML=`<div class="swatch" style="background:${c.hex}"></div><div class="grow" style="min-width:0;"><div class="codes">${displayCode(c)} <span class="more">库存 ${fmt(c.stock)}</span></div><div class="nm">${c.name||''}</div></div>`;
+    const st=document.createElement('div'); st.className='stepper';
+    st.innerHTML=`<button>−</button><input type="text" inputmode="numeric" min="0" value="${useDraft[id]}"><button>＋</button>`;
+    const inp=st.querySelector('input');
+    st.children[0].onclick=()=>{ inp.value=Math.max(0,(+inp.value||0)-10); useDraft[id]=+inp.value; updateUseBtn(); };
+    st.children[2].onclick=()=>{ inp.value=(+inp.value||0)+10; useDraft[id]=+inp.value; updateUseBtn(); };
+    inp.oninput=()=>{ useDraft[id]=Math.max(0,+inp.value||0); updateUseBtn(); };
+    const rm=document.createElement('button'); rm.className='btn line sm'; rm.style.flex='none'; rm.textContent='移除';
+    rm.onclick=()=>{ delete useDraft[id]; renderUseList(); };
+    div.appendChild(st); div.appendChild(rm); box.appendChild(div);
+  });
+  updateUseBtn();
+}
+function updateUseBtn(){ const total=Object.values(useDraft).reduce((s,x)=>s+(x||0),0); const btn=$('#btnApplyUse'); btn.textContent=(useMode==='out'?'确认扣减库存':'确认补货入库')+(total?`（共 ${fmt(total)} 颗）`:''); btn.disabled=!total; }
+function applyUse(){
+  const ids=Object.keys(useDraft).filter(id=>useDraft[id]>0); if(!ids.length)return; let warn=[];
+  ids.forEach(id=>{ const c=colorById(id); if(!c)return; if(useMode==='out'){ if(c.stock<useDraft[id])warn.push(displayCode(c)); c.stock=Math.max(0,c.stock-useDraft[id]); } else { c.stock+=useDraft[id]; if(c.stock>=state.settings.threshold)c.snooze=false; } });
+  save(); useDraft={}; renderUseList(); renderInventory(); renderLow(); updateBadge();
+  toast(useMode==='out'?(warn.length?('已扣减（不足已清零：'+warn.join('、')+'）'):'已扣减库存 ✓'):'已补货入库 ✓');
+}
+
+/* ============================================================
+   补豆
+   ============================================================ */
+function renderLow(){
+  $('#thLabel').textContent=fmt(state.settings.threshold);
+  const box=$('#lowList'); box.innerHTML='';
+  const list=lowColors().sort((a,b)=>a.stock-b.stock);
+  if(!list.length){ box.innerHTML='<div class="empty"><span class="ic">✅</span>所有颜色库存充足</div>'; return; }
+  list.forEach(c=>{
+    const card=document.createElement('div'); card.className='card'; card.style.padding='14px';
+    card.innerHTML=`<div class="row" style="margin-bottom:10px;"><div class="swatch lg" style="background:${c.hex}"></div>
+      <div class="grow" style="min-width:0;"><div class="codes" style="font-weight:700;">${codesText(c).join(' / ')||'—'} ${c.snooze?'<span class="tag" style="background:var(--mint-bg);color:var(--mint);">已标记补货</span>':''}</div><div class="nm muted sm">${c.name||''}</div></div>
+      <div class="stock-pill ${stockClass(c.stock)}">${fmt(c.stock)}</div></div>`;
+    const r=document.createElement('div'); r.className='row'; r.style.gap='8px';
+    const st=document.createElement('div'); st.className='stepper';
+    st.innerHTML=`<button>−</button><input type="text" inputmode="numeric" placeholder="补货数" min="0"><button>＋</button>`;
+    const inp=st.querySelector('input');
+    st.children[0].onclick=()=>{ inp.value=Math.max(0,(+inp.value||0)-100); };
+    st.children[2].onclick=()=>{ inp.value=(+inp.value||0)+100; };
+    const addBtn=mkBtn('补货入库','ok sm',()=>{ const v=+inp.value||0; if(v<=0){toast('请输入补货数量');return;} c.stock+=v; if(c.stock>=state.settings.threshold)c.snooze=false; save(); renderLow(); renderInventory(); updateBadge(); toast(`+${fmt(v)} 已入库`); });
+    r.appendChild(st); r.appendChild(addBtn); card.appendChild(r);
+    const r2=document.createElement('div'); r2.style.marginTop='9px';
+    r2.appendChild(mkBtn(c.snooze?'恢复提醒':'已补货，不再提醒','line sm',()=>{ c.snooze=!c.snooze; save(); renderLow(); updateBadge(); }));
+    card.appendChild(r2); box.appendChild(card);
+  });
+}
+function updateBadge(){ const n=lowToRemind().length; const b=$('#lowBadge'); if(n>0){ b.textContent=n; b.classList.add('show'); } else b.classList.remove('show'); }
+
+/* ---------- 一键补货 ---------- */
+function openBulkRestock(){
+  const sel=new Set(); let mode='add'; let filterMode='all';
+  const body=document.createElement('div');
+  body.innerHTML=`
+    <div class="row" style="margin-bottom:12px;gap:10px;">
+      <div class="seg" id="brMode"><button data-m="add" class="active">增加</button><button data-m="set">设为</button></div>
+      <div class="stepper" style="flex:1;justify-content:flex-end;">
+        <button id="brMinus">−</button><input id="brQty" type="text" inputmode="numeric" min="0" value="1000" style="width:90px;"><button id="brPlus">＋</button>
+      </div>
+    </div>
+    <div class="hint" id="brHint" style="margin-bottom:12px;">给选中的每种颜色库存 <b>增加</b> 指定颗数（如全选 +1000 表示每种都买了 1000 颗）。</div>
+    <input type="search" id="brSearch" placeholder="搜索色号/名字筛选">
+    <div class="seg" id="brFilter" style="display:flex;width:100%;margin:10px 0 8px;">
+      <button data-v="all" class="active" style="flex:1;" id="fAll">全部</button>
+      <button data-v="low" style="flex:1;" id="fLow">低库存</button>
+      <button data-v="sel" style="flex:1;" id="fSel">已选 0</button>
+    </div>
+    <div class="row" style="margin-bottom:10px;gap:7px;flex-wrap:wrap;">
+      <button class="btn line sm" id="brAll">全选当前</button>
+      <button class="btn line sm" id="brNone">清空</button>
+      <button class="btn line sm" id="brLow">选低库存并查看</button>
+    </div>
+    <div id="brList" style="max-height:40vh;overflow:auto;border:1px solid var(--line);border-radius:13px;padding:4px 10px;"></div>`;
+  const qty=body.querySelector('#brQty'), search=body.querySelector('#brSearch'), listEl=body.querySelector('#brList'), hint=body.querySelector('#brHint');
+  const confirmBtn=mkBtn('确认','ok',()=>{
+    const q=Math.max(0,Math.round(+qty.value||0));
+    if(!sel.size){ toast('请先选择颜色'); return; }
+    if(mode==='add'&&q<=0){ toast('请输入补货颗数'); return; }
+    sel.forEach(id=>{ const c=colorById(id); if(!c)return; if(mode==='add')c.stock+=q; else c.stock=q; if(c.stock>=state.settings.threshold)c.snooze=false; });
+    save(); closeModal(); renderLow(); renderInventory(); updateBadge();
+    toast(`已为 ${sel.size} 种颜色${mode==='add'?' 补货 +'+fmt(q):' 设为 '+fmt(q)+' 颗'}`);
+  });
+  function filtered(){
+    const q=search.value.trim().toLowerCase();
+    let arr=state.colors.slice().sort((a,b)=>naturalCompare(displayCode(a),displayCode(b)));
+    if(filterMode==='low') arr=arr.filter(c=>c.stock<state.settings.threshold);
+    else if(filterMode==='sel') arr=arr.filter(c=>sel.has(c.id));
+    if(q) arr=arr.filter(c=>(c.name||'').toLowerCase().includes(q)||Object.values(c.codes).some(v=>String(v).toLowerCase().includes(q)));
+    return arr;
+  }
+  function updateCount(){
+    const q=Math.max(0,Math.round(+qty.value||0));
+    body.querySelector('#fLow').textContent='低库存 '+lowColors().length;
+    body.querySelector('#fSel').textContent='已选 '+sel.size;
+    confirmBtn.textContent = sel.size?(mode==='add'?`确认 +${fmt(q)}（${sel.size}色）`:`确认设为 ${fmt(q)}（${sel.size}色）`):'确认';
+  }
+  function setFilter(v){ filterMode=v; $$('#brFilter button',body).forEach(b=>b.classList.toggle('active',b.dataset.v===v)); renderList(); }
+  function renderList(){
+    listEl.innerHTML='';
+    const arr=filtered();
+    if(!arr.length){ listEl.innerHTML='<div class="muted sm" style="padding:12px 2px;">'+(filterMode==='sel'?'还没有选中任何颜色':'无匹配颜色')+'</div>'; updateCount(); return; }
+    arr.forEach(c=>{
+      const row=document.createElement('label'); row.className='inv-item'; row.style.cursor='pointer';
+      row.innerHTML=`<input type="checkbox" ${sel.has(c.id)?'checked':''} style="width:20px;height:20px;flex:none;accent-color:var(--pri);">
+        <div class="swatch" style="background:${c.hex}"></div>
+        <div class="grow" style="min-width:0;"><div class="codes">${displayCode(c)}</div><div class="nm">${c.name||''}</div></div>
+        <div class="stock-pill ${stockClass(c.stock)}">${fmt(c.stock)}</div>`;
+      const cb=row.querySelector('input');
+      cb.onchange=()=>{ cb.checked?sel.add(c.id):sel.delete(c.id); if(filterMode==='sel'&&!cb.checked) renderList(); else updateCount(); };
+      listEl.appendChild(row);
+    });
+    updateCount();
+  }
+  body.querySelector('#brMinus').onclick=()=>{ qty.value=Math.max(0,(+qty.value||0)-100); updateCount(); };
+  body.querySelector('#brPlus').onclick=()=>{ qty.value=(+qty.value||0)+100; updateCount(); };
+  qty.oninput=updateCount;
+  $$('#brMode button',body).forEach(b=>b.onclick=()=>{ mode=b.dataset.m; $$('#brMode button',body).forEach(x=>x.classList.toggle('active',x===b)); hint.innerHTML=mode==='add'?'给选中的每种颜色库存 <b>增加</b> 指定颗数（如全选 +1000 表示每种都买了 1000 颗）。':'把选中的每种颜色库存 <b>直接设为</b> 指定颗数（用于初始备货/盘点）。'; updateCount(); });
+  $$('#brFilter button',body).forEach(b=>b.onclick=()=>setFilter(b.dataset.v));
+  body.querySelector('#brAll').onclick=()=>{ filtered().forEach(c=>sel.add(c.id)); renderList(); };
+  body.querySelector('#brNone').onclick=()=>{ sel.clear(); renderList(); };
+  body.querySelector('#brLow').onclick=()=>{ lowColors().forEach(c=>sel.add(c.id)); setFilter('low'); };
+  search.oninput=renderList;
+  renderList();
+  openModal('一键补货', body, [ mkBtn('取消','line',closeModal), confirmBtn ]);
+}
+
+/* ============================================================
+   Modal & 编辑颜色 / 设置 / 导入 / 备份
+   ============================================================ */
+function openModal(title,bodyEl,footEls){ $('#modalTitle').textContent=title; const body=$('#modalBody'); body.innerHTML=''; body.appendChild(bodyEl); const foot=$('#modalFoot'); foot.innerHTML=''; (footEls||[]).forEach(b=>foot.appendChild(b)); $('#modalWrap').classList.add('show'); }
+function closeModal(){ $('#modalWrap').classList.remove('show'); }
+function mkBtn(label,cls,fn){ const b=document.createElement('button'); b.className='btn '+(cls||''); b.textContent=label; b.onclick=fn; return b; }
+
+function editColor(id){
+  const c=id?colorById(id):{id:null,hex:'#cccccc',name:'',stock:0,codes:{},snooze:false};
+  const isNew=!id;
+  const body=document.createElement('div');
+  const codeFields=state.systems.map(s=>`<label class="fld"><span>色号 · ${s}</span><input type="text" data-sys="${s}" value="${(c.codes[s]||'').replace(/"/g,'&quot;')}" placeholder="如 A1 / XM1"></label>`).join('');
+  body.innerHTML=`
+    <label class="fld"><span>颜色</span><div class="row"><input type="color" value="${/^#[0-9a-fA-F]{6}$/.test(c.hex)?c.hex:'#cccccc'}" id="ecHex" style="width:54px;height:44px;padding:2px;border-radius:12px;"><input type="text" id="ecHexT" value="${c.hex}" style="flex:1;"></div></label>
+    <label class="fld"><span>名字（可选）</span><input type="text" id="ecName" value="${(c.name||'').replace(/"/g,'&quot;')}" placeholder="如 大红、肤色"></label>
+    <label class="fld"><span>库存（颗）</span><input type="text" inputmode="numeric" id="ecStock" value="${c.stock}"></label>
+    <hr class="sep"><div class="sm muted" style="margin-bottom:8px;font-weight:600;">各命名体系色号（同一颜色可对应多个）</div>${codeFields}`;
+  const hexC=body.querySelector('#ecHex'), hexT=body.querySelector('#ecHexT');
+  hexC.oninput=()=>hexT.value=hexC.value;
+  hexT.oninput=()=>{ if(/^#[0-9a-fA-F]{6}$/.test(hexT.value))hexC.value=hexT.value; };
+  const foot=[];
+  if(!isNew) foot.push(mkBtn('删除','bad line',()=>{ if(confirm('确定删除这个颜色？')){ state.colors=state.colors.filter(x=>x.id!==id); save(); closeModal(); renderInventory(); renderLow(); updateBadge(); toast('已删除'); } }));
+  foot.push(mkBtn('保存','ok',()=>{
+    const hex=hexT.value.trim(); if(!/^#[0-9a-fA-F]{6}$/.test(hex)){ toast('颜色格式应为 #RRGGBB'); return; }
+    const codes={}; body.querySelectorAll('[data-sys]').forEach(i=>{ const v=i.value.trim(); if(v)codes[i.dataset.sys]=v; });
+    const stock=Math.max(0,Math.round(+body.querySelector('#ecStock').value||0));
+    const name=body.querySelector('#ecName').value.trim();
+    if(isNew) state.colors.push({id:uid(),hex,name,stock,codes,snooze:false});
+    else { c.hex=hex; c.name=name; c.stock=stock; c.codes=codes; if(c.stock>=state.settings.threshold)c.snooze=false; }
+    save(); closeModal(); renderInventory(); renderLow(); updateBadge(); toast('已保存');
+  }));
+  openModal(isNew?'新增颜色':'编辑颜色', body, foot);
+}
+
+function openSettings(){
+  const body=document.createElement('div');
+  body.innerHTML=`
+    <label class="fld"><span>补货提醒阈值（库存低于此值进入补豆清单）</span><input type="text" inputmode="numeric" id="setTh" value="${state.settings.threshold}"></label>
+    <hr class="sep"><div class="sm" style="font-weight:700;margin-bottom:8px;">命名体系</div>
+    <div class="hint" style="margin-bottom:10px;">一个颜色可对应多个体系色号（如 A1 与 XM1）。库存页顶部可切换视图。</div>
+    <div id="sysList"></div>
+    <div class="row" style="margin-top:8px;"><input type="text" id="newSys" placeholder="新增体系名，如 XM系"><button class="btn ghost sm" id="addSys">添加</button></div>
+    <hr class="sep">
+    <button class="btn line" id="btnImport" style="width:100%;margin-bottom:9px;">📋 批量粘贴导入色号</button>
+    <button class="btn line" id="btnReseed" style="width:100%;">♻️ 重置为标准色卡</button>`;
+  function renderSys(){
+    const box=body.querySelector('#sysList'); box.innerHTML='';
+    state.systems.forEach(s=>{
+      const r=document.createElement('div'); r.className='row'; r.style.cssText='gap:8px;margin-bottom:7px;';
+      r.innerHTML=`<span class="tag" style="font-size:13px;">${s}</span><span class="grow"></span>`;
+      r.appendChild(mkBtn('改名','line sm',()=>{ const nn=prompt('体系新名称',s); if(nn&&nn.trim()&&!state.systems.includes(nn.trim())){ const old=s,nt=nn.trim(); state.systems=state.systems.map(x=>x===old?nt:x); state.colors.forEach(c=>{ if(c.codes[old]!=null){c.codes[nt]=c.codes[old]; delete c.codes[old];} }); if(state.activeView===old)state.activeView=nt; save(); renderSys(); renderInventory(); } }));
+      if(state.systems.length>1) r.appendChild(mkBtn('删除','bad line sm',()=>{ if(confirm(`删除体系「${s}」？该体系下的色号将被移除（颜色保留）。`)){ state.systems=state.systems.filter(x=>x!==s); state.colors.forEach(c=>delete c.codes[s]); if(state.activeView===s)state.activeView='__main__'; save(); renderSys(); renderInventory(); } }));
+      box.appendChild(r);
+    });
+  }
+  renderSys();
+  body.querySelector('#addSys').onclick=()=>{ const v=body.querySelector('#newSys').value.trim(); if(!v)return; if(state.systems.includes(v)){toast('已存在');return;} state.systems.push(v); body.querySelector('#newSys').value=''; save(); renderSys(); renderInventory(); };
+  body.querySelector('#btnImport').onclick=()=>{ closeModal(); openImport(); };
+  body.querySelector('#btnReseed').onclick=()=>{ if(confirm('重置为标准 224 色色卡？这会清空现有颜色与库存（图纸保留）。')){ state.colors=seedColors(); state.systems=['默认']; state.activeView='__main__'; save(); closeModal(); renderInventory(); renderLow(); updateBadge(); toast('已重置色卡'); } };
+  openModal('设置', body, [ mkBtn('完成','ok',()=>{ const th=Math.max(0,Math.round(+body.querySelector('#setTh').value||0)); state.settings.threshold=th; state.colors.forEach(c=>{if(c.stock>=th)c.snooze=false;}); save(); closeModal(); renderInventory(); renderLow(); updateBadge(); }) ]);
+}
+
+function openImport(){
+  const body=document.createElement('div');
+  body.innerHTML=`
+    <div class="hint" style="margin-bottom:12px;">每行一个颜色，列之间用 <b>逗号 / 制表符</b> 分隔（可从 Excel 直接复制）。<br><b>列顺序：</b>${state.systems.map(s=>'色号·'+s).join(' , ')} , 名字 , 库存 , 颜色#<br>名字 / 库存 / 颜色 可省略。颜色用 #RRGGBB（不填自动配色）。</div>
+    <label class="fld"><span>导入模式</span><select id="impMode"><option value="merge">合并：按色号匹配更新，找不到则新增</option><option value="replace">替换：清空后全部新建</option></select></label>
+    <textarea id="impText" placeholder="例：&#10;A1,XM1,大红,1200,#e2231a&#10;A2,,粉,800&#10;A3"></textarea>
+    <div class="sm muted" id="impPreview" style="margin-top:8px;"></div>`;
+  const ta=body.querySelector('#impText');
+  function parse(){
+    const ns=state.systems.length; const rows=[];
+    ta.value.split(/\r?\n/).map(l=>l.trim()).filter(Boolean).forEach(line=>{
+      const cells=line.split(/\t|,/).map(s=>s.trim());
+      const codeCells=cells.slice(0,ns); let rest=cells.slice(ns); let hex=null,stock=null,name='';
+      const hi=rest.findIndex(x=>/^#[0-9a-fA-F]{6}$/.test(x)); if(hi>=0){ hex=rest[hi]; rest.splice(hi,1); }
+      const si=rest.findIndex(x=>/^\d+$/.test(x)); if(si>=0){ stock=+rest[si]; rest.splice(si,1); }
+      name=rest.find(x=>x)||'';
+      if(codeCells.every(c=>!c)&&!name)return;
+      rows.push({codeCells,name,stock,hex});
+    });
+    return rows;
+  }
+  ta.oninput=()=>{ body.querySelector('#impPreview').textContent=`将处理 ${parse().length} 行`; };
+  openModal('批量导入色号', body, [ mkBtn('导入','ok',()=>{
+    const rows=parse(); if(!rows.length){ toast('没有可导入的数据'); return; }
+    const mode=body.querySelector('#impMode').value;
+    if(mode==='replace'){ if(!confirm('替换模式会清空现有颜色，确定？'))return; state.colors=[]; }
+    let added=0,updated=0;
+    rows.forEach(r=>{
+      const codes={}; state.systems.forEach((s,i)=>{ if(r.codeCells[i])codes[s]=r.codeCells[i]; });
+      let match=null; if(mode==='merge') match=state.colors.find(c=>state.systems.some(s=>codes[s]&&c.codes[s]===codes[s]));
+      if(match){ Object.assign(match.codes,codes); if(r.name)match.name=r.name; if(r.stock!=null)match.stock=r.stock; if(r.hex)match.hex=r.hex; updated++; }
+      else { state.colors.push({id:uid(),hex:r.hex||hslToHex((added*37)%360,75,55),name:r.name||'',stock:r.stock||0,codes,snooze:false}); added++; }
+    });
+    save(); closeModal(); renderInventory(); renderLow(); updateBadge(); toast(`导入完成：新增 ${added}，更新 ${updated}`);
+  }) ]);
+}
+
+async function exportBackup(){
+  toast('打包备份中…'); const imgs={}; const keys=await IDB.keys();
+  for(const k of keys){ const b=await IDB.get(k); if(b)imgs[k]=await blobToDataURL(b); }
+  const blob=new Blob([JSON.stringify({app:'perler',exportedAt:new Date().toISOString(),state,images:imgs})],{type:'application/json'});
+  const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download='拼豆库存备份-'+todayStr()+'.json'; a.click(); toast('已导出备份文件');
+}
+function blobToDataURL(b){ return new Promise(r=>{const fr=new FileReader(); fr.onload=()=>r(fr.result); fr.readAsDataURL(b);}); }
+function openBackupMenu(){
+  const body=document.createElement('div');
+  body.innerHTML=`<button class="btn" id="bkExport" style="width:100%;margin-bottom:10px;">⬇️ 导出备份文件</button>
+    <button class="btn line" id="bkImport" style="width:100%;">⬆️ 从备份文件恢复</button>
+    <input type="file" id="bkFile" accept="application/json,.json" style="display:none">
+    <div class="hint" style="margin-top:12px;">备份含全部库存、色号、图纸图片。建议定期导出到网盘/相册，换手机时可恢复。</div>`;
+  body.querySelector('#bkExport').onclick=exportBackup;
+  body.querySelector('#bkImport').onclick=()=>body.querySelector('#bkFile').click();
+  body.querySelector('#bkFile').onchange=async(e)=>{ const f=e.target.files[0]; if(!f)return; if(!confirm('恢复将覆盖当前所有数据，确定？'))return;
+    try{ const data=JSON.parse(await f.text()); if(!data.state)throw new Error('文件格式不对'); state=data.state; migrate(); save(); if(data.images){ for(const k of Object.keys(data.images)){ const blob=await (await fetch(data.images[k])).blob(); await IDB.put(k,blob); } } closeModal(); refreshAll(); toast('已从备份恢复'); }catch(err){ alert('恢复失败：'+err.message); } };
+  openModal('备份与恢复', body, []);
+}
+
+/* ---------- 每日提醒 ---------- */
+function dailyReminder(){
+  const low=lowToRemind();
+  if(low.length && state.settings.lastRemindDate!==todayStr()){
+    const body=document.createElement('div');
+    const names=low.slice(0,30).map(c=>`<span class="tag">${codesText(c)[0]||c.name||'?'} · ${fmt(c.stock)}</span>`).join('');
+    body.innerHTML=`<div class="banner" style="margin:0 0 10px;"><div class="bt">🔔 有 ${low.length} 种颜色需要补货</div><div style="margin-top:6px;">${names}${low.length>30?'…':''}</div></div><div class="hint">可在「补豆」页逐个标记已补货或填补货数量。</div>`;
+    openModal('补货提醒', body, [ mkBtn('知道了','line',()=>{ state.settings.lastRemindDate=todayStr(); save(); closeModal(); }), mkBtn('去补豆','ok',()=>{ state.settings.lastRemindDate=todayStr(); save(); closeModal(); switchTab('low'); }) ]);
+  }
+}
+
+/* ---------- Tab / 初始化 ---------- */
+function switchTab(name){
+  $$('.tab-view').forEach(v=>v.classList.remove('active'));
+  $('#view-'+name).classList.add('active');
+  $$('nav.tabbar button').forEach(b=>b.classList.toggle('active',b.dataset.tab===name));
+  if(name==='inv')renderInventory(); if(name==='pat')renderPatterns(); if(name==='use')renderUseList(); if(name==='low')renderLow();
+  window.scrollTo(0,0);
+}
+function refreshAll(){ renderInventory(); renderPatterns(); renderUseList(); renderLow(); updateBadge(); }
+function bind(){
+  // 数量输入框：只允许非负整数（去小数/负号/非数字）
+  document.addEventListener('input', e=>{
+    const t=e.target;
+    if(t && t.tagName==='INPUT' && t.getAttribute && t.getAttribute('inputmode')==='numeric'){
+      const v=t.value.replace(/[,\s]/g,'').match(/^\d*/)[0].replace(/^0+(?=\d)/,'');
+      if(t.value!==v){ t.value=v; }
+    }
+  }, true);
+  $$('nav.tabbar button').forEach(b=>b.onclick=()=>switchTab(b.dataset.tab));
+  $('#viewSel').onchange=(e)=>{ state.activeView=e.target.value; save(); renderInventory(); };
+  $('#invSearch').oninput=renderInventory;
+  $('#btnAddColor').onclick=()=>editColor(null);
+  $('#btnSettings').onclick=openSettings; $('#btnBackup').onclick=openBackupMenu;
+  $('#btnBulkRestock').onclick=openBulkRestock;
+  $$('#patSeg button').forEach(b=>b.onclick=()=>{ patFilter=b.dataset.f; $$('#patSeg button').forEach(x=>x.classList.toggle('active',x===b)); renderPatterns(); });
+  $('#btnAddPattern').onclick=()=>$('#patFile').click();
+  $('#patFile').onchange=(e)=>{ const f=e.target.files[0]; e.target.value=''; handlePatternFile(f); };
+  $$('#useMode button').forEach(b=>b.onclick=()=>{ useMode=b.dataset.m; $$('#useMode button').forEach(x=>x.classList.toggle('active',x===b)); $('#useModeHint').textContent=useMode==='out'?'不绑定图纸的临时扣减。图纸消耗请在「图纸」里记录。':'手动补货，直接加到库存上。'; updateUseBtn(); });
+  $('#useSearch').oninput=renderUseSuggest;
+  $('#btnClearUse').onclick=()=>{ useDraft={}; renderUseList(); };
+  $('#btnApplyUse').onclick=applyUse;
+  $('#modalX').onclick=closeModal; $('#modalBg').onclick=closeModal;
+}
+function init(){ load(); bind(); refreshAll(); dailyReminder(); }
+init();
+</script>
+</body>
+</html>
