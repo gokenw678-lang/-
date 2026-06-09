@@ -113,18 +113,28 @@
   .pat .chk{position:absolute; top:9px; left:9px; width:30px; height:30px; border-radius:50%; background:rgba(255,255,255,.94); display:flex; align-items:center; justify-content:center; font-size:15px; box-shadow:0 2px 8px rgba(0,0,0,.18);}
   .pat .donetag{position:absolute; top:9px; right:9px; background:linear-gradient(135deg,#54c79b,#2fa87a); color:#fff; font-size:10px; padding:3px 9px; border-radius:20px; font-weight:700;}
 
-  /* 待拼单列卡 */
-  .pcard{background:var(--card); border-radius:18px; box-shadow:var(--shadow); padding:11px; margin-bottom:12px; display:flex; align-items:center; gap:12px;}
-  .pcard .thumb{width:64px; height:64px; border-radius:14px; object-fit:cover; background:#f1eefb; flex:none;}
+  /* 图纸列表卡 */
+  .pcard{background:var(--card); border-radius:18px; box-shadow:var(--shadow); padding:11px; margin-bottom:12px;}
+  .pcard-main{display:flex; align-items:center; gap:10px;}
+  .pcard .thumb{width:62px; height:62px; border-radius:14px; object-fit:cover; background:#f1eefb; flex:none;}
   .pcard .pinfo{flex:1; min-width:0;}
   .pcard .pinfo .t{font-weight:700; font-size:15px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;}
   .pcard .pinfo .sub{font-size:12px; color:var(--muted); margin-top:2px;}
   .pcard .rank{display:inline-block; min-width:20px; height:20px; line-height:20px; text-align:center; background:var(--lav-bg); color:var(--lav); border-radius:7px; font-size:11px; font-weight:800; padding:0 5px; margin-right:6px;}
+  .pcard .donetag2{display:inline-block; background:var(--mint-bg); color:var(--mint); border-radius:7px; font-size:10px; font-weight:800; padding:1px 6px; margin-right:6px; vertical-align:middle;}
   .pcard .reorder{display:flex; flex-direction:column; gap:4px; flex:none;}
-  .pcard .reorder button{width:30px; height:26px; border-radius:8px; border:none; background:#f5f3fd; color:var(--pri-d); font-size:12px;}
+  .pcard .reorder button{width:28px; height:25px; border-radius:8px; border:none; background:#f5f3fd; color:var(--pri-d); font-size:12px;}
   .pcard .reorder button:disabled{opacity:.3;}
-  .pcard .done-btn{flex:none; width:44px; height:44px; border-radius:50%; border:none; background:var(--mint-bg); color:var(--mint); font-size:20px; box-shadow:inset 0 0 0 1.5px rgba(47,168,122,.25);}
-  .pcard .done-btn:active{transform:scale(.92);}
+  .pcard .act-btn{flex:none; width:40px; height:40px; border-radius:50%; border:none; font-size:18px;}
+  .pcard .act-btn.done{background:var(--mint-bg); color:var(--mint); box-shadow:inset 0 0 0 1.5px rgba(47,168,122,.25);}
+  .pcard .act-btn.revert{background:var(--low-bg); color:var(--low); box-shadow:inset 0 0 0 1.5px rgba(217,138,54,.25);}
+  .pcard .act-btn:active{transform:scale(.92);}
+  .pcard .chev{flex:none; width:22px; height:40px; border:none; background:none; color:#c4c0d4; font-size:26px; line-height:1; padding:0; font-weight:300;}
+  .pcard .chev:active{color:var(--pri);}
+  .pcard-note{margin-top:9px;}
+  .pcard-note .note-in{width:100%; border:1px dashed #d8d4e8; background:#fbfaff; border-radius:11px; padding:8px 11px; font-size:12.5px; color:var(--ink);}
+  .pcard-note .note-in:focus{border-style:solid; border-color:var(--pri); box-shadow:0 0 0 4px rgba(139,123,230,.1);}
+  .pcard-note .note-in::placeholder{color:#bdb9cc;}
 
   .seg{display:inline-flex; background:#efeaff; border-radius:13px; padding:4px;}
   .seg button{border:none; background:none; padding:8px 15px; border-radius:10px; font-size:13px; font-weight:650; color:var(--muted);}
@@ -206,7 +216,7 @@
         <span class="grow"></span>
         <button class="btn" id="btnAddPattern">＋ 上传图纸</button>
       </div>
-      <input type="file" id="patFile" accept="image/*" capture="environment" style="display:none">
+      <input type="file" id="patFile" accept="image/*" style="display:none">
       <div id="patProjection"></div>
       <div id="patList"></div>
     </section>
@@ -340,7 +350,7 @@ function migrate(){
   if(state.settings.threshold==null)state.settings.threshold=500;
   state.colors=state.colors||[]; state.patterns=state.patterns||[];
   state.colors.forEach(c=>{ c.codes=c.codes||{}; c.stock=Number(c.stock)||0; if(c.snooze==null)c.snooze=false; });
-  state.patterns.forEach((p,i)=>{ p.usage=p.usage||{}; p.actualUsage=p.actualUsage||{}; if(p.order==null)p.order=-(p.createdAt||(Date.now()-i)); });
+  state.patterns.forEach((p,i)=>{ p.usage=p.usage||{}; p.actualUsage=p.actualUsage||{}; if(p.note==null)p.note=''; if(p.order==null)p.order=-(p.createdAt||(Date.now()-i)); });
 }
 function save(){ localStorage.setItem(KEY, JSON.stringify(state)); }
 
@@ -480,44 +490,48 @@ function renderProjection(){
 function renderPatterns(){
   renderProjection();
   const box=$('#patList'); box.innerHTML='';
-  if(patFilter==='todo'){
-    const list=todoSorted();
-    if(!list.length){ box.innerHTML='<div class="empty"><span class="ic">🖼️</span>还没有待拼图纸，点右上角上传</div>'; return; }
-    list.forEach((p,idx)=>{
-      const el=document.createElement('div'); el.className='pcard';
-      const est=patBeads(p.usage); const nc=Object.keys(cleanDraft(p.usage)).length;
-      el.innerHTML=`
+  const todo = patFilter==='todo';
+  const list = todo ? todoSorted() : state.patterns.filter(p=>p.status==='done').sort((a,b)=>b.createdAt-a.createdAt);
+  if(!list.length){ box.innerHTML=`<div class="empty"><span class="ic">${todo?'🖼️':'✅'}</span>${todo?'还没有待拼图纸，点右上角上传':'还没有已拼图纸'}</div>`; return; }
+  list.forEach((p,idx)=>{
+    const el=document.createElement('div'); el.className='pcard';
+    const usage = todo ? p.usage : p.actualUsage;
+    const beads = patBeads(usage); const nc=Object.keys(cleanDraft(usage)).length;
+    const sub = todo ? (nc?`预计 ${nc} 色 · 约 ${fmt(beads)} 颗`:'未填预计消耗') : (nc?`实际 ${nc} 色 · ${fmt(beads)} 颗`:'无用量记录');
+    el.innerHTML=`
+      <div class="pcard-main">
         <img class="thumb" alt="">
-        <div class="pinfo"><div class="t"><span class="rank">#${idx+1}</span>${p.title||'未命名图纸'}</div>
-          <div class="sub">${nc?`预计 ${nc} 色 · 约 ${fmt(est)} 颗`:'未填预计消耗'}</div></div>
-        <div class="reorder"><button class="up">▲</button><button class="down">▼</button></div>
-        <button class="done-btn" title="拼完">✓</button>`;
-      box.appendChild(el);
-      if(p.imageId) IDB.get(p.imageId).then(b=>{ if(b)el.querySelector('.thumb').src=URL.createObjectURL(b); });
+        <div class="pinfo">
+          <div class="t">${todo?`<span class="rank">#${idx+1}</span>`:'<span class="donetag2">已拼</span>'}${p.title||'未命名图纸'}</div>
+          <div class="sub">${sub}</div>
+        </div>
+        ${todo?'<div class="reorder"><button class="up">▲</button><button class="down">▼</button></div>':''}
+        <button class="act-btn ${todo?'done':'revert'}" title="${todo?'标记已拼':'退回待拼'}">${todo?'✓':'↩︎'}</button>
+        <button class="chev" title="详情">›</button>
+      </div>
+      <div class="pcard-note">
+        <input class="note-in" type="text" placeholder="📝 备注：板子尺寸 / 图纸来源 / 链接…">
+      </div>`;
+    box.appendChild(el);
+    if(p.imageId) IDB.get(p.imageId).then(b=>{ if(b)el.querySelector('.thumb').src=URL.createObjectURL(b); });
+    if(todo){
       const up=el.querySelector('.up'), dn=el.querySelector('.down');
       up.disabled=idx===0; dn.disabled=idx===list.length-1;
       up.onclick=(e)=>{ e.stopPropagation(); moveTodo(p.id,-1); };
       dn.onclick=(e)=>{ e.stopPropagation(); moveTodo(p.id,1); };
-      el.querySelector('.done-btn').onclick=(e)=>{ e.stopPropagation(); confirmComplete(p.id); };
-      el.querySelector('.thumb').onclick=()=>openPattern(p.id);
-      el.querySelector('.pinfo').onclick=()=>openPattern(p.id);
-    });
-  }else{
-    const list=state.patterns.filter(p=>p.status==='done').sort((a,b)=>b.createdAt-a.createdAt);
-    if(!list.length){ box.innerHTML='<div class="empty"><span class="ic">✅</span>还没有已拼图纸</div>'; return; }
-    const grid=document.createElement('div'); grid.className='pat-grid'; box.appendChild(grid);
-    list.forEach(p=>{
-      const el=document.createElement('div'); el.className='pat done';
-      const act=patBeads(p.actualUsage); const nc=Object.keys(cleanDraft(p.actualUsage)).length;
-      el.innerHTML=`<div class="chk">↩︎</div><div class="donetag">已拼</div><img class="thumb" alt="">
-        <div class="meta"><div class="t">${p.title||'未命名图纸'}</div><div class="xs muted">${nc?`实际 ${fmt(act)} 颗`:'无用量记录'}</div></div>`;
-      grid.appendChild(el);
-      if(p.imageId) IDB.get(p.imageId).then(b=>{ if(b)el.querySelector('.thumb').src=URL.createObjectURL(b); });
-      el.querySelector('.chk').onclick=(e)=>{ e.stopPropagation(); revertPattern(p.id); };
-      el.querySelector('.meta').onclick=()=>openPattern(p.id);
-      el.querySelector('.thumb').onclick=()=>openPattern(p.id);
-    });
-  }
+      el.querySelector('.act-btn').onclick=(e)=>{ e.stopPropagation(); confirmComplete(p.id); };
+    }else{
+      el.querySelector('.act-btn').onclick=(e)=>{ e.stopPropagation(); revertPattern(p.id); };
+    }
+    const open=()=>openPattern(p.id);
+    el.querySelector('.thumb').onclick=open;
+    el.querySelector('.pinfo').onclick=open;
+    el.querySelector('.chev').onclick=open;
+    const note=el.querySelector('.note-in');
+    note.value=p.note||'';
+    note.onclick=(e)=>e.stopPropagation();
+    note.oninput=()=>{ p.note=note.value; save(); };
+  });
 }
 function moveTodo(id,dir){
   const list=todoSorted(); const i=list.findIndex(p=>p.id===id); const j=i+dir;
@@ -560,11 +574,13 @@ function openPattern(id){
   const body=document.createElement('div');
   body.innerHTML=`
     <label class="fld"><span>标题</span><input type="text" id="ptTitle" value="${(p.title||'').replace(/"/g,'&quot;')}" placeholder="给图纸起个名"></label>
+    <label class="fld"><span>备注（板子尺寸 / 图纸来源 / 链接等）</span><textarea id="ptNote" style="min-height:64px;" placeholder="例：29×29 拼板 ／ 来源：小红书 @xxx ／ https://..."></textarea></label>
     <div style="text-align:center;margin-bottom:12px;"><img id="ptImg" style="max-width:100%;max-height:44vh;border-radius:14px;box-shadow:var(--shadow);" alt=""></div>
     <hr class="sep">
     <div class="row" style="margin-bottom:10px;"><b class="grow">${done?'实际消耗':'预计消耗'}</b>
       <span class="tag ${done?'':''}" id="ptTotal"></span></div>`;
   if(p.imageId) IDB.get(p.imageId).then(b=>{ if(b)body.querySelector('#ptImg').src=URL.createObjectURL(b); });
+  body.querySelector('#ptNote').value=p.note||'';
   const draft=Object.assign({}, done?p.actualUsage:p.usage);
   const totalTag=body.querySelector('#ptTotal');
   const ed=qtyEditor(draft,{step:10,showStock:done,onChange:()=>{ totalTag.textContent='共 '+fmt(patBeads(draft))+' 颗'; }});
@@ -576,7 +592,7 @@ function openPattern(id){
   if(done){
     const old=Object.assign({}, p.actualUsage);
     foot.push(mkBtn('保存调整','ok',()=>{
-      p.title=body.querySelector('#ptTitle').value.trim();
+      p.title=body.querySelector('#ptTitle').value.trim(); p.note=body.querySelector('#ptNote').value;
       const clean=cleanDraft(draft);
       // 按差值调整库存
       const cids=new Set([...Object.keys(old),...Object.keys(clean)]);
@@ -584,8 +600,8 @@ function openPattern(id){
       p.actualUsage=clean; save(); closeModal(); renderPatterns(); renderInventory(); renderLow(); updateBadge(); toast('已更新实际消耗并调整库存');
     }));
   }else{
-    foot.push(mkBtn('保存预计','ghost',()=>{ p.title=body.querySelector('#ptTitle').value.trim(); p.usage=cleanDraft(draft); save(); closeModal(); renderPatterns(); toast('已保存预计消耗'); }));
-    foot.push(mkBtn('标记已拼','ok',()=>{ p.title=body.querySelector('#ptTitle').value.trim(); p.usage=cleanDraft(draft); save(); closeModal(); confirmComplete(id); }));
+    foot.push(mkBtn('保存预计','ghost',()=>{ p.title=body.querySelector('#ptTitle').value.trim(); p.note=body.querySelector('#ptNote').value; p.usage=cleanDraft(draft); save(); closeModal(); renderPatterns(); toast('已保存预计消耗'); }));
+    foot.push(mkBtn('标记已拼','ok',()=>{ p.title=body.querySelector('#ptTitle').value.trim(); p.note=body.querySelector('#ptNote').value; p.usage=cleanDraft(draft); save(); closeModal(); confirmComplete(id); }));
   }
   openModal(done?'已拼图纸':'待拼图纸', body, foot);
 }
@@ -597,7 +613,7 @@ async function handlePatternFile(file){
   const blob=await (await fetch(dataUrl)).blob();
   const imgId=uid(); await IDB.put(imgId,blob);
   const minOrder=state.patterns.length?Math.min(...state.patterns.map(x=>x.order??0)):0;
-  const p={id:uid(),title:'',status:'todo',imageId:imgId,createdAt:Date.now(),order:minOrder-1,usage:{},actualUsage:{}};
+  const p={id:uid(),title:'',status:'todo',imageId:imgId,createdAt:Date.now(),order:minOrder-1,note:'',usage:{},actualUsage:{}};
   state.patterns.push(p); save();
   patFilter='todo'; $$('#patSeg button').forEach(b=>b.classList.toggle('active',b.dataset.f==='todo'));
   renderPatterns(); openPattern(p.id);
