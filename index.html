@@ -293,11 +293,44 @@ const IDB = (()=>{
 const KEY='perler_state_v1';
 let state=null;
 function seedColors(){
-  const out=[]; let n=0;
-  const add=(hex,name)=>{ n++; out.push({id:uid(),hex,name:name||'',stock:0,codes:{'默认':String(n).padStart(3,'0')},snooze:false}); };
-  for(let i=0;i<24;i++){ const l=Math.round(i/23*100); add(hslToHex(0,0,l), i===0?'黑':(i===23?'白':'灰'+l)); }
-  for(let hi=0; hi<20; hi++){ const h=Math.round(hi*18); for(let j=0;j<10;j++){ const l=Math.round(88-j*(88-26)/9); const s=Math.round(72+(j<5?j*4:(9-j)*4)); add(hslToHex(h,Math.min(96,s),l),''); } }
-  return out;
+  // 内置标准色卡：A–M 共 221 色（颜色为按官方色卡图估算的近似值，可在 App 内点色块微调）
+  const data=[
+    ['A1','#f1e7d0'],['A2','#efe3b8'],['A3','#f7d63c'],['A4','#f8cf2e'],['A5','#f7be25'],['A6','#f4992c'],['A7','#f3934a'],
+    ['A8','#efc23c'],['A9','#dca866'],['A10','#ef8f2e'],['A11','#f0a85e'],['A12','#f1a878'],['A13','#ee8636'],['A14','#ef5430'],
+    ['A15','#fbd71b'],['A16','#f4e29a'],['A17','#eaddb0'],['A18','#f3a458'],['A19','#f15c4a'],['A20','#f3dc95'],['A21','#f5d97e'],
+    ['A22','#f2df9e'],['A23','#d6b483'],['A24','#ece2c4'],['A25','#f1c63e'],['A26','#f3c233'],
+    ['B1','#c8d22e'],['B2','#8cc63a'],['B3','#a8c89a'],['B4','#5cb84a'],['B5','#bfe0b0'],['B6','#2ea888'],['B7','#2faa6a'],
+    ['B8','#1f7a4a'],['B9','#1a6e5e'],['B10','#7cc8c0'],['B11','#4a5a28'],['B12','#5cb050'],['B13','#c0e0a0'],['B14','#6cba4a'],
+    ['B15','#1f6e64'],['B16','#b6e08a'],['B17','#7a8a30'],['B18','#d2d83a'],['B19','#3aa890'],['B20','#d2ecd0'],['B21','#1f6a60'],
+    ['B22','#2a8a7a'],['B23','#2a4030'],['B24','#d8eaa0'],['B25','#4aa86a'],['B26','#7a7438'],['B27','#9aa885'],['B28','#8cd0a8'],
+    ['B29','#b0c83a'],['B30','#e2eed0'],['B31','#b8d0a8'],['B32','#8a9a4a'],
+    ['C1','#d8ebdc'],['C2','#aadcd8'],['C3','#6ec4e2'],['C4','#6cc0e8'],['C5','#2aa8e0'],['C6','#1f9ae0'],['C7','#2a9ad8'],
+    ['C8','#2050c0'],['C9','#1f54e0'],['C10','#2ab0c0'],['C11','#1f8a8a'],['C12','#1a5a64'],['C13','#a8c4e8'],['C14','#c0dcec'],
+    ['C15','#5ab0b0'],['C16','#1a2e4a'],['C17','#2a78c0'],['C18','#2a8a7a'],['C19','#1f4a6a'],['C20','#aac0d2'],['C21','#b8c8d8'],
+    ['C22','#6a9aa0'],['C23','#8aa0b4'],['C24','#3a78c0'],['C25','#cce4dc'],['C26','#25405e'],['C27','#cfe0ec'],['C28','#8aa6c2'],['C29','#4a6a82'],
+    ['D1','#6a8ad8'],['D2','#3a6ad0'],['D3','#1f3ab0'],['D4','#1f2e8a'],['D5','#b03a8a'],['D6','#8a7ac8'],['D7','#6a4aa8'],
+    ['D8','#9a8ad8'],['D9','#9a8ad0'],['D10','#4a4ab0'],['D11','#6a7ad0'],['D12','#7a4aa8'],['D13','#a02aa0'],['D14','#8a3a9a'],
+    ['D15','#2a2e8a'],['D16','#aab8e8'],['D17','#9ab0e0'],['D18','#7a6ac0'],['D19','#9a8ab0'],['D20','#8a1f9a'],['D21','#6a2a9a'],
+    ['D22','#2a3a9a'],['D23','#c8c0e8'],['D24','#3a5ac8'],['D25','#2a3ab0'],['D26','#b0a0d8'],
+    ['E1','#c89a96'],['E2','#e8a8c0'],['E3','#e070a0'],['E4','#d24a90'],['E5','#c01f7a'],['E6','#e83a82'],['E7','#9a1f5a'],
+    ['E8','#f2c2d2'],['E9','#c83a86'],['E10','#d61f8a'],['E11','#f3cbb8'],['E12','#f0b0a8'],['E13','#8a2a6a'],['E14','#f0c0a0'],
+    ['E15','#c89aa0'],['E16','#ecc0c8'],['E17','#f0b8c8'],['E18','#ef9ab8'],['E19','#f0bcc8'],['E20','#9a7a8a'],['E21','#a07a78'],
+    ['E22','#7a3a6a'],['E23','#5a2e4a'],['E24','#e8c0d8'],
+    ['F1','#f2887a'],['F2','#ee2a2a'],['F3','#e84a3a'],['F4','#d81f24'],['F5','#b01f3a'],['F6','#9a3a2a'],['F7','#7a1f3a'],
+    ['F8','#8a1f3a'],['F9','#ef9ab0'],['F10','#8a4a2a'],['F11','#5a2e24'],['F12','#d83a5a'],['F13','#c05a2a'],['F14','#f0a896'],
+    ['F15','#a01f3a'],['F16','#f2c2b0'],['F17','#c06a4a'],['F18','#bf8a5a'],['F19','#9a2a4a'],['F20','#b07a7a'],['F21','#f0b0c0'],
+    ['F22','#f3aeb8'],['F23','#e8503a'],['F24','#ef8a8a'],['F25','#b02a3a'],
+    ['G1','#ecdcb0'],['G2','#e0c498'],['G3','#cfa878'],['G4','#a06a3a'],['G5','#b07a30'],['G6','#8a5a3a'],['G7','#b8a890'],
+    ['G8','#4a2e1f'],['G9','#d2b48a'],['G10','#9a6a30'],['G11','#d8c8a0'],['G12','#c0a868'],['G13','#9a5a2a'],['G14','#b08a5a'],
+    ['G15','#e8e0c0'],['G16','#c0b49a'],['G17','#3a2a1f'],['G18','#ece2c0'],['G19','#c89a2a'],['G20','#5a3a24'],['G21','#9a8a78'],
+    ['H1','#fbfbfb'],['H2','#f2efe4'],['H3','#cfcfcf'],['H4','#9a9a9a'],['H5','#5a5a5a'],['H6','#2a2a2a'],['H7','#161616'],
+    ['H8','#e2cdd0'],['H9','#c8c8c8'],['H10','#b0b0b0'],['H11','#6a6a6a'],['H12','#e2dcc4'],['H13','#b0a48a'],['H14','#9aa8b0'],
+    ['H15','#7a8a92'],['H16','#2e2e30'],['H17','#eeeae0'],['H18','#ece4cc'],['H19','#d8cbb0'],['H20','#8a9aa0'],['H21','#9aabb4'],
+    ['H22','#d0cdc4'],['H23','#c4bcae'],
+    ['M1','#a8b0a4'],['M2','#6a7a5a'],['M3','#3a4a52'],['M4','#8a8478'],['M5','#a89a6a'],['M6','#9a8a5a'],['M7','#7a5a52'],
+    ['M8','#6a4a52'],['M9','#c0a070'],['M10','#8a6a7a'],['M11','#7a5a7a'],['M12','#2e2420'],['M13','#8a4a3a'],['M14','#9a3a2a'],['M15','#4a5a64']
+  ];
+  return data.map(([code,hex])=>({id:uid(),hex,name:'',stock:0,codes:{'默认':code},snooze:false}));
 }
 function defaultState(){ return { version:2, systems:['默认'], activeView:'__main__', colors:seedColors(), patterns:[], settings:{threshold:500,lastRemindDate:''} }; }
 function load(){ try{ const raw=localStorage.getItem(KEY); if(raw){ state=JSON.parse(raw); migrate(); return; } }catch(e){} state=defaultState(); save(); }
@@ -775,7 +808,7 @@ function openSettings(){
   renderSys();
   body.querySelector('#addSys').onclick=()=>{ const v=body.querySelector('#newSys').value.trim(); if(!v)return; if(state.systems.includes(v)){toast('已存在');return;} state.systems.push(v); body.querySelector('#newSys').value=''; save(); renderSys(); renderInventory(); };
   body.querySelector('#btnImport').onclick=()=>{ closeModal(); openImport(); };
-  body.querySelector('#btnReseed').onclick=()=>{ if(confirm('重置为标准 224 色色卡？这会清空现有颜色与库存（图纸保留）。')){ state.colors=seedColors(); state.systems=['默认']; state.activeView='__main__'; save(); closeModal(); renderInventory(); renderLow(); updateBadge(); toast('已重置色卡'); } };
+  body.querySelector('#btnReseed').onclick=()=>{ if(confirm('重置为标准 221 色色卡（A–M）？这会清空现有颜色与库存（图纸保留）。')){ state.colors=seedColors(); state.systems=['默认']; state.activeView='__main__'; save(); closeModal(); renderInventory(); renderLow(); updateBadge(); toast('已重置色卡'); } };
   openModal('设置', body, [ mkBtn('完成','ok',()=>{ const th=Math.max(0,Math.round(+body.querySelector('#setTh').value||0)); state.settings.threshold=th; state.colors.forEach(c=>{if(c.stock>=th)c.snooze=false;}); save(); closeModal(); renderInventory(); renderLow(); updateBadge(); }) ]);
 }
 
