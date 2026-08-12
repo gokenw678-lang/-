@@ -1,0 +1,565 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>拼豆记账 · UI 预览稿</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+/* ── 设计令牌 ─────────────────────────────────── */
+:root {
+  --pink-1:  #F9D3DA;   /* 浅樱粉·背景/浮标 */
+  --pink-2:  #F6C2CA;   /* 中樱粉·低库存标记 */
+  --mint:    #DEEFE0;   /* 薄荷绿·充足/完成 */
+  --blue-1:  #C6D4EC;   /* 淡蓝·边框/次要 */
+  --blue-2:  #7586C2;   /* 钴蓝·主操作/激活 */
+
+  --bg:      #F8F8FA;   /* 页面底色 */
+  --surface: #FFFFFF;   /* 卡片 */
+  --border:  #C6D4EC;   /* 统一细线 */
+  --text:    #2A2A3D;   /* 主文字 */
+  --sub:     #7586C2;   /* 次要文字 */
+  --muted:   #AAB3CC;   /* 占位/标签 */
+
+  --r: 8px;             /* 统一圆角 */
+  --pad: 24px;          /* 页面左右 */
+  --sec: 72px;          /* section 间距 */
+
+  font-family: 'Noto Serif SC', serif;
+}
+
+/* ── Reset ───────────────────────────────────── */
+*{box-sizing:border-box;margin:0;padding:0;}
+body{
+  background:var(--bg);
+  color:var(--text);
+  font-family:'Noto Serif SC',serif;
+  font-size:15px;
+  line-height:1.6;
+  padding-bottom:88px;
+}
+
+/* ── Scroll-reveal ───────────────────────────── */
+.rv{opacity:0;transform:translateY(20px);transition:opacity .4s ease-out,transform .4s ease-out;}
+.rv.in{opacity:1;transform:none;}
+
+/* ── 顶部栏 ─────────────────────────────────── */
+.topbar{
+  position:sticky;top:0;z-index:20;
+  background:var(--surface);
+  border-bottom:1px solid var(--border);
+  padding:16px var(--pad);
+  display:flex;align-items:baseline;gap:10px;
+}
+.topbar h1{font-size:17px;font-weight:600;}
+.topbar .draft-tag{
+  font-size:11px;letter-spacing:.06em;
+  color:var(--muted);border:1px solid var(--border);
+  border-radius:4px;padding:2px 8px;
+}
+
+/* ── 区块 ─────────────────────────────────── */
+.section{padding:32px var(--pad) 0;}
+.section+.section{padding-top:var(--sec);}
+.sec-label{
+  font-size:11px;letter-spacing:.1em;font-weight:600;
+  color:var(--muted);text-transform:uppercase;margin-bottom:16px;
+}
+
+/* ── 卡片 ─────────────────────────────────── */
+.card{
+  background:var(--surface);
+  border:1px solid var(--border);
+  border-radius:var(--r);
+  padding:16px;
+}
+.card+.card,.card+.btn-row{margin-top:10px;}
+
+/* ── Segmented control ────────────────────── */
+.seg{
+  display:flex;
+  border:1px solid var(--border);
+  border-radius:var(--r);
+  overflow:hidden;
+  margin-bottom:18px;
+}
+.seg-btn{
+  flex:1;padding:9px 6px;
+  border:none;background:none;
+  font-family:'Noto Serif SC',serif;
+  font-size:13px;color:var(--muted);cursor:pointer;
+}
+.seg-btn+.seg-btn{border-left:1px solid var(--border);}
+.seg-btn.on{background:var(--blue-2);color:#fff;}
+
+/* ── 库存行 ─────────────────────────────── */
+.crow{display:flex;align-items:center;gap:12px;}
+.cswatch{width:32px;height:32px;border-radius:4px;border:1px solid var(--border);flex-shrink:0;}
+.cinfo{flex:1;}
+.ccode{font-size:13px;font-weight:600;}
+.cname{font-size:11px;color:var(--muted);}
+.pill{
+  font-size:12px;padding:3px 10px;
+  border-radius:4px;border:1px solid var(--border);
+  color:var(--sub);min-width:54px;text-align:right;white-space:nowrap;
+}
+.pill.ok{border-color:var(--mint);color:#3d7a50;background:var(--mint);}
+.pill.low{border-color:var(--pink-2);color:#b04060;background:var(--pink-1);}
+.pill.zero{border-color:var(--pink-2);color:#b04060;background:var(--pink-2);font-weight:600;}
+
+/* ── 按钮 ──────────────────────────────── */
+.btn-row{display:flex;gap:10px;flex-wrap:wrap;margin-top:16px;}
+.btn{
+  display:inline-flex;align-items:center;gap:6px;
+  padding:9px 18px;border-radius:var(--r);
+  border:1px solid var(--border);background:none;
+  font-family:'Noto Serif SC',serif;font-size:13px;
+  cursor:pointer;color:var(--text);
+}
+.btn.pri{background:var(--blue-2);color:#fff;border-color:var(--blue-2);}
+.btn.ghost{color:var(--blue-2);border-color:var(--blue-1);}
+.btn.sm{padding:6px 12px;font-size:12px;}
+
+/* ── 预测条 ─────────────────────────────── */
+.proj{
+  background:var(--surface);
+  border:1px solid var(--blue-2);
+  border-radius:var(--r);padding:16px;margin-bottom:18px;
+}
+.proj-lbl{font-size:11px;letter-spacing:.06em;color:var(--blue-2);font-weight:600;margin-bottom:10px;}
+.chips{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:12px;}
+.chip{
+  font-size:12px;padding:4px 10px;
+  border-radius:4px;border:1px solid var(--border);
+  color:var(--sub);
+}
+.chip.short{border-color:var(--pink-2);color:#b04060;background:var(--pink-1);}
+.chip.ok{border-color:var(--mint);color:#3d7a50;}
+.stepper{display:flex;align-items:center;gap:10px;font-size:13px;color:var(--sub);}
+.stepper button{
+  width:28px;height:28px;border:1px solid var(--border);
+  border-radius:4px;background:none;color:var(--blue-2);
+  font-size:16px;cursor:pointer;line-height:1;
+}
+
+/* ── 图纸卡 ─────────────────────────────── */
+.prow{display:flex;align-items:flex-start;gap:12px;}
+.pthumb{
+  width:52px;height:52px;border-radius:4px;
+  border:1px solid var(--border);background:var(--blue-1);
+  flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:22px;
+}
+.pinfo{flex:1;min-width:0;}
+.ptitle{font-size:14px;font-weight:600;}
+.pmeta{font-size:12px;color:var(--muted);margin-top:3px;}
+.pbadge-row{display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-bottom:4px;}
+.badge{
+  font-size:11px;padding:2px 7px;
+  border-radius:4px;border:1px solid currentColor;line-height:1.4;
+}
+.badge.todo{color:var(--blue-2);border-color:var(--blue-1);background:#eef1f8;}
+.badge.done{color:#3d7a50;border-color:var(--mint);background:var(--mint);}
+.badge.rank{color:var(--muted);border-color:var(--border);}
+.pright{display:flex;flex-direction:column;align-items:flex-end;gap:8px;flex-shrink:0;}
+.sort-btns{display:flex;gap:4px;}
+.sort-btns button{
+  width:24px;height:24px;border:1px solid var(--border);
+  border-radius:4px;background:none;color:var(--muted);font-size:11px;cursor:pointer;
+}
+.chev{font-size:22px;color:var(--blue-1);}
+.note-wrap{margin-top:12px;padding-top:12px;border-top:1px solid var(--border);}
+.note-ta{
+  width:100%;border:1px dashed var(--border);border-radius:4px;
+  padding:8px 10px;font-size:12px;font-family:'Noto Serif SC',serif;
+  color:var(--sub);background:none;resize:none;outline:none;line-height:1.5;
+}
+.note-ta::placeholder{color:var(--muted);}
+
+/* ── 补货行 ─────────────────────────────── */
+.rrow{display:flex;align-items:center;gap:12px;}
+.rchk{
+  width:18px;height:18px;flex-shrink:0;
+  border:1px solid var(--border);border-radius:3px;
+  appearance:none;-webkit-appearance:none;cursor:pointer;background:none;
+  position:relative;
+}
+.rchk:checked{background:var(--blue-2);border-color:var(--blue-2);}
+.rchk:checked::after{
+  content:'✓';position:absolute;top:50%;left:50%;
+  transform:translate(-50%,-50%);color:#fff;font-size:12px;line-height:1;
+}
+.rswatch{width:26px;height:26px;border-radius:4px;border:1px solid var(--border);flex-shrink:0;}
+.rinfo{flex:1;}
+.rcode{font-size:13px;font-weight:600;}
+.rname{font-size:11px;color:var(--muted);}
+
+/* ── 摘要卡 ─────────────────────────────── */
+.stat-card{
+  background:var(--surface);border:1px solid var(--border);
+  border-radius:var(--r);padding:16px;margin-bottom:14px;
+  display:flex;align-items:baseline;gap:8px;
+}
+.stat-n{font-size:28px;font-weight:600;color:var(--blue-2);}
+.stat-u{font-size:13px;color:var(--sub);}
+
+/* ── 底部 Tab Bar ─────────────────────── */
+.tabbar{
+  position:fixed;bottom:0;left:0;right:0;
+  background:var(--surface);border-top:1px solid var(--border);
+  display:flex;padding:8px 0 18px;z-index:20;
+}
+.tab{
+  flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;
+  background:none;border:none;cursor:pointer;
+  font-family:'Noto Serif SC',serif;font-size:11px;color:var(--muted);padding:6px 0;
+}
+.tab.on{color:var(--blue-2);}
+.tab-ic{font-size:20px;line-height:1;}
+
+/* ── 预览专用提示 ─────────────────────── */
+.preview-banner{
+  background:var(--pink-1);border-bottom:1px solid var(--pink-2);
+  padding:10px var(--pad);font-size:12px;color:#b04060;
+  display:flex;align-items:center;gap:8px;
+}
+
+/* ── 分割线标注 ───────────────────────── */
+.divider{
+  margin:40px var(--pad) 0;padding:0 0 8px;
+  border-bottom:1px solid var(--border);
+  font-size:11px;letter-spacing:.08em;color:var(--muted);font-weight:600;
+}
+</style>
+</head>
+<body>
+
+<!-- 预览提示 -->
+<div class="preview-banner">
+  ⚠ 预览稿 · 非最终版本 · 向下滚动查看全部组件 · scroll-in 动画已启用
+</div>
+
+<!-- 顶部栏 -->
+<div class="topbar rv">
+  <h1>拼豆记账</h1>
+  <span class="draft-tag">PREVIEW</span>
+</div>
+
+<!-- ══════════════ SECTION A: 库存 ══════════════ -->
+<div class="divider rv">A · 库存页</div>
+<div class="section">
+  <div class="sec-label">颜色库存</div>
+
+  <!-- 命名系统切换 -->
+  <div class="seg rv">
+    <button class="seg-btn on">默认</button>
+    <button class="seg-btn">XM 系</button>
+    <button class="seg-btn">全部</button>
+  </div>
+
+  <!-- 颜色行 · 充足 -->
+  <div class="card rv">
+    <div class="crow">
+      <div class="cswatch" style="background:#f1e7d0;"></div>
+      <div class="cinfo"><div class="ccode">A1</div><div class="cname">奶油白</div></div>
+      <div class="pill ok">1 200</div>
+    </div>
+  </div>
+
+  <!-- 颜色行 · 低库存 -->
+  <div class="card rv">
+    <div class="crow">
+      <div class="cswatch" style="background:#F6C2CA;"></div>
+      <div class="cinfo"><div class="ccode">A3</div><div class="cname">浅玫瑰</div></div>
+      <div class="pill low">320</div>
+    </div>
+  </div>
+
+  <!-- 颜色行 · 零库存 -->
+  <div class="card rv">
+    <div class="crow">
+      <div class="cswatch" style="background:#7586C2;"></div>
+      <div class="cinfo"><div class="ccode">B12</div><div class="cname">薰衣草蓝</div></div>
+      <div class="pill zero">0</div>
+    </div>
+  </div>
+
+  <!-- 颜色行 · 普通 -->
+  <div class="card rv">
+    <div class="crow">
+      <div class="cswatch" style="background:#DEEFE0;"></div>
+      <div class="cinfo"><div class="ccode">C7</div><div class="cname">薄荷绿</div></div>
+      <div class="pill">680</div>
+    </div>
+  </div>
+
+  <div class="btn-row rv">
+    <button class="btn pri">一键补货</button>
+    <button class="btn ghost">＋ 单色补货</button>
+  </div>
+</div>
+
+<!-- ══════════════ SECTION B: 图纸 ══════════════ -->
+<div class="divider rv">B · 图纸页</div>
+<div class="section">
+  <div class="sec-label">我的图纸</div>
+
+  <!-- 预测条 -->
+  <div class="proj rv">
+    <div class="proj-lbl">完成前 N 张后预计库存</div>
+    <div class="chips">
+      <span class="chip short">A3 缺 180 颗</span>
+      <span class="chip short">B12 缺 50 颗</span>
+      <span class="chip ok">C7 充足</span>
+      <span class="chip ok">D2 充足</span>
+    </div>
+    <div class="stepper">
+      <button>−</button>
+      <span>前 <strong>3</strong> 张</span>
+      <button>＋</button>
+    </div>
+  </div>
+
+  <!-- 待拼/已拼切换 -->
+  <div class="seg rv">
+    <button class="seg-btn on">待拼 (3)</button>
+    <button class="seg-btn">已拼 (5)</button>
+  </div>
+
+  <!-- 图纸卡 · 待拼 #1 -->
+  <div class="card rv">
+    <div class="prow">
+      <div class="pthumb">🌸</div>
+      <div class="pinfo">
+        <div class="pbadge-row">
+          <span class="badge rank">#1</span>
+          <span class="badge todo">待拼</span>
+        </div>
+        <div class="ptitle">樱花兔子</div>
+        <div class="pmeta">A3 ×200 · B12 ×80 · 共 4 色</div>
+      </div>
+      <div class="pright">
+        <div class="sort-btns">
+          <button>▲</button><button>▼</button>
+        </div>
+        <span class="chev">›</span>
+      </div>
+    </div>
+    <div class="note-wrap">
+      <textarea class="note-ta" rows="2" placeholder="备注：板子尺寸 / 来源 / 链接…">29×29 拼板，来源：小红书 @xxx</textarea>
+    </div>
+  </div>
+
+  <!-- 图纸卡 · 待拼 #2 -->
+  <div class="card rv">
+    <div class="prow">
+      <div class="pthumb">🦋</div>
+      <div class="pinfo">
+        <div class="pbadge-row">
+          <span class="badge rank">#2</span>
+          <span class="badge todo">待拼</span>
+        </div>
+        <div class="ptitle">蓝蝴蝶</div>
+        <div class="pmeta">C5 ×150 · D8 ×60 · 共 3 色</div>
+      </div>
+      <div class="pright">
+        <div class="sort-btns">
+          <button>▲</button><button>▼</button>
+        </div>
+        <span class="chev">›</span>
+      </div>
+    </div>
+    <div class="note-wrap">
+      <textarea class="note-ta" rows="2" placeholder="备注：板子尺寸 / 来源 / 链接…"></textarea>
+    </div>
+  </div>
+
+  <!-- 图纸卡 · 已拼 -->
+  <div class="card rv">
+    <div class="prow">
+      <div class="pthumb" style="background:var(--mint);">🌙</div>
+      <div class="pinfo">
+        <div class="pbadge-row">
+          <span class="badge done">已拼</span>
+        </div>
+        <div class="ptitle">星月熊猫</div>
+        <div class="pmeta">实际消耗 A1 ×180 · C5 ×90</div>
+      </div>
+      <div class="pright">
+        <span class="chev">›</span>
+      </div>
+    </div>
+    <div class="note-wrap">
+      <textarea class="note-ta" rows="2" placeholder="备注：板子尺寸 / 来源 / 链接…">15×15 小板，图源：Pinterest</textarea>
+    </div>
+  </div>
+
+  <div class="btn-row rv">
+    <button class="btn pri">＋ 上传图纸</button>
+  </div>
+</div>
+
+<!-- ══════════════ SECTION C: 补货 ══════════════ -->
+<div class="divider rv">C · 补货提醒页</div>
+<div class="section">
+  <div class="sec-label">补货提醒</div>
+
+  <div class="stat-card rv">
+    <span class="stat-n">8</span>
+    <span class="stat-u">个色号低于 500 颗阈值</span>
+  </div>
+
+  <!-- 筛选 tab -->
+  <div class="seg rv" style="margin-bottom:14px;">
+    <button class="seg-btn on">全部</button>
+    <button class="seg-btn">低库存</button>
+    <button class="seg-btn">已选</button>
+  </div>
+
+  <div class="card rv">
+    <div class="rrow">
+      <input class="rchk" type="checkbox" checked>
+      <div class="rswatch" style="background:#F6C2CA;"></div>
+      <div class="rinfo"><div class="rcode">A3</div><div class="rname">浅玫瑰</div></div>
+      <div class="pill low">320</div>
+    </div>
+  </div>
+  <div class="card rv">
+    <div class="rrow">
+      <input class="rchk" type="checkbox">
+      <div class="rswatch" style="background:#c8e6c9;"></div>
+      <div class="rinfo"><div class="rcode">E11</div><div class="rname">嫩草绿</div></div>
+      <div class="pill zero">0</div>
+    </div>
+  </div>
+  <div class="card rv">
+    <div class="rrow">
+      <input class="rchk" type="checkbox" checked>
+      <div class="rswatch" style="background:#7586C2;"></div>
+      <div class="rinfo"><div class="rcode">B12</div><div class="rname">薰衣草蓝</div></div>
+      <div class="pill low">480</div>
+    </div>
+  </div>
+
+  <div class="btn-row rv">
+    <button class="btn pri">批量补货</button>
+    <button class="btn ghost">选低库存</button>
+    <button class="btn sm">全部忽略</button>
+  </div>
+</div>
+
+<!-- ══════════════ SECTION D: 弹窗组件 ══════════════ -->
+<div class="divider rv">D · 弹窗 · 批量补货（静态展示）</div>
+<div class="section">
+  <div class="sec-label">弹窗示意</div>
+  <div class="card rv" style="border-color:var(--blue-2);">
+    <div style="font-size:15px;font-weight:600;margin-bottom:16px;">批量补货</div>
+
+    <!-- 模式切换 -->
+    <div class="seg" style="margin-bottom:16px;">
+      <button class="seg-btn on">增加</button>
+      <button class="seg-btn">设为</button>
+    </div>
+
+    <!-- 数量输入 -->
+    <div style="margin-bottom:16px;">
+      <div style="font-size:12px;color:var(--muted);margin-bottom:6px;">补货数量（颗）</div>
+      <input type="text" inputmode="numeric" value="1000"
+        style="width:100%;border:1px solid var(--border);border-radius:var(--r);
+               padding:10px 14px;font-family:'Noto Serif SC',serif;font-size:15px;
+               font-weight:600;color:var(--blue-2);background:none;outline:none;">
+    </div>
+
+    <!-- 筛选 tab -->
+    <div class="seg" style="margin-bottom:12px;">
+      <button class="seg-btn on">全部</button>
+      <button class="seg-btn">低库存</button>
+      <button class="seg-btn">已选 (2)</button>
+    </div>
+
+    <div style="display:flex;flex-direction:column;gap:10px;">
+      <div class="rrow">
+        <input class="rchk" type="checkbox" checked>
+        <div class="rswatch" style="background:#F6C2CA;"></div>
+        <div class="rinfo"><div class="rcode">A3</div></div>
+        <div class="pill low">320</div>
+      </div>
+      <div class="rrow">
+        <input class="rchk" type="checkbox" checked>
+        <div class="rswatch" style="background:#7586C2;"></div>
+        <div class="rinfo"><div class="rcode">B12</div></div>
+        <div class="pill low">480</div>
+      </div>
+      <div class="rrow">
+        <input class="rchk" type="checkbox">
+        <div class="rswatch" style="background:#f1e7d0;"></div>
+        <div class="rinfo"><div class="rcode">A1</div></div>
+        <div class="pill ok">1 200</div>
+      </div>
+    </div>
+
+    <div class="btn-row" style="margin-top:18px;">
+      <button class="btn pri" style="flex:1;">确认补货</button>
+      <button class="btn">取消</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════ SECTION E: 字体/颜色对照 ══════════════ -->
+<div class="divider rv">E · 设计令牌参考</div>
+<div class="section">
+  <div class="sec-label">色板</div>
+  <div class="card rv" style="display:flex;flex-direction:column;gap:10px;">
+    <div style="display:flex;align-items:center;gap:12px;">
+      <div style="width:36px;height:36px;border-radius:4px;background:#F9D3DA;border:1px solid var(--border);flex-shrink:0;"></div>
+      <div><div style="font-size:13px;font-weight:600;">#F9D3DA</div><div style="font-size:11px;color:var(--muted);">浅樱粉 · 低库存背景</div></div>
+    </div>
+    <div style="display:flex;align-items:center;gap:12px;">
+      <div style="width:36px;height:36px;border-radius:4px;background:#F6C2CA;border:1px solid var(--border);flex-shrink:0;"></div>
+      <div><div style="font-size:13px;font-weight:600;">#F6C2CA</div><div style="font-size:11px;color:var(--muted);">中樱粉 · 低库存边框/标记</div></div>
+    </div>
+    <div style="display:flex;align-items:center;gap:12px;">
+      <div style="width:36px;height:36px;border-radius:4px;background:#DEEFE0;border:1px solid var(--border);flex-shrink:0;"></div>
+      <div><div style="font-size:13px;font-weight:600;">#DEEFE0</div><div style="font-size:11px;color:var(--muted);">薄荷绿 · 充足/完成状态</div></div>
+    </div>
+    <div style="display:flex;align-items:center;gap:12px;">
+      <div style="width:36px;height:36px;border-radius:4px;background:#C6D4EC;border:1px solid var(--border);flex-shrink:0;"></div>
+      <div><div style="font-size:13px;font-weight:600;">#C6D4EC</div><div style="font-size:11px;color:var(--muted);">淡蓝 · 边框/次要元素</div></div>
+    </div>
+    <div style="display:flex;align-items:center;gap:12px;">
+      <div style="width:36px;height:36px;border-radius:4px;background:#7586C2;flex-shrink:0;"></div>
+      <div><div style="font-size:13px;font-weight:600;">#7586C2</div><div style="font-size:11px;color:var(--muted);">钴蓝 · 主操作/激活/Tab</div></div>
+    </div>
+  </div>
+
+  <div class="sec-label" style="margin-top:24px;">字体层级</div>
+  <div class="card rv" style="display:flex;flex-direction:column;gap:12px;">
+    <div style="font-size:17px;font-weight:600;">页面标题 17px · 600</div>
+    <div style="font-size:15px;font-weight:500;">卡片主信息 15px · 500</div>
+    <div style="font-size:13px;">正文 / 色号 13px · 400</div>
+    <div style="font-size:12px;color:var(--sub);">次要说明 12px · sub 色</div>
+    <div style="font-size:11px;color:var(--muted);letter-spacing:.08em;text-transform:uppercase;font-weight:600;">Section 标签 11px · muted · uppercase</div>
+  </div>
+</div>
+
+<!-- 底部 Tab Bar -->
+<div class="tabbar">
+  <button class="tab on">
+    <span class="tab-ic">◉</span>库存
+  </button>
+  <button class="tab">
+    <span class="tab-ic">◫</span>图纸
+  </button>
+  <button class="tab">
+    <span class="tab-ic">◎</span>补货
+  </button>
+</div>
+
+<script>
+const obs = new IntersectionObserver(es => {
+  es.forEach(e => { if(e.isIntersecting){ e.target.classList.add('in'); obs.unobserve(e.target); } });
+}, { threshold: 0.08 });
+document.querySelectorAll('.rv').forEach(el => obs.observe(el));
+</script>
+</body>
+</html>
